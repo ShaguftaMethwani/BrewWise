@@ -1,0 +1,28 @@
+You are an expert specialty coffee brewer and recipe designer.
+Given the following coffee profile and equipment context, generate a dialed-in pour-over recipe with inline reasoning.
+
+Coffee Information:
+- Roaster: {{ coffee.brand.value or "Specialty Roaster" }}
+- Coffee Name: {{ coffee.product_name.value or "Single Origin" }}
+- Origin / Country: {{ coffee.country.value or "Unknown" }}
+- Region / Estate: {{ coffee.region.value or coffee.estate.value or "Unknown" }}
+- Varietal: {{ coffee.varietal.value or "Arabica" }}
+- Process: {{ coffee.process.value or "washed" }}
+- Roast Level: {{ coffee.roast_level.value or "light" }}
+- Tasting Notes: {{ coffee.tasting_notes.value or "Balanced sweet acidity" }}
+- Stated Altitude: {{ coffee.altitude.value or "High elevation" }}
+
+Brewing Setup:
+- Dripper: {{ dripper or "Hario V60" }}
+- Grinder: {{ grinder or "Specialty hand grinder" }}
+- Target Dose: {{ dose_g }}g
+- Preference: {{ target_strength or "balanced" }}
+
+Strict Rules:
+1. Dose: default to {{ dose_g }}g. Total water = dose_g * ratio (e.g. 15g * 16 = 240g).
+2. Pour Schedule: Bloom (2x to 3x dose) + 2 to 4 subsequent pours. The sum of all pour step `water_g` MUST EXACTLY equal `water_g`.
+3. Water temperature: 88°C–96°C depending on roast level and process (higher for light/washed, lower for dark/natural).
+4. Provide actionable `grind_description` and, if grinder is known, setting hints.
+5. Provide clear `explanation` detailing why these parameters fit the bean processing and roast.
+6. Provide 2-3 practical troubleshooting tips for under- or over-extraction symptoms.
+7. Return strictly valid JSON conforming to RecipeGenerationOutput schema.

@@ -1,0 +1,97 @@
+export interface ExtractedField {
+  value: string | null;
+  confidence: number;
+  source: 'bag_text' | 'inferred' | 'unknown' | 'user_override';
+  raw_text?: string | null;
+}
+
+export interface CoffeeProfileDraft {
+  id: string;
+  brand: ExtractedField;
+  product_name: ExtractedField;
+  estate: ExtractedField;
+  country: ExtractedField;
+  region: ExtractedField;
+  varietal: ExtractedField;
+  process: ExtractedField;
+  roast_level: ExtractedField;
+  roast_date: ExtractedField;
+  tasting_notes: ExtractedField;
+  altitude: ExtractedField;
+  dose_recommendation?: ExtractedField | null;
+  additional_info: ExtractedField[];
+  image_id?: string | null;
+  image_url?: string | null;
+  extraction_model: string;
+  is_coffee_bag: boolean;
+  rejection_reason?: string | null;
+}
+
+export interface EquipmentItem {
+  id: string;
+  category: 'dripper' | 'grinder';
+  brand: string;
+  model: string;
+  geometry?: string | null;
+  description?: string | null;
+  default_ratio?: string;
+}
+
+export interface PourStep {
+  step_number: number;
+  water_g: number;
+  cumulative_water_g: number;
+  start_time_seconds: number;
+  duration_seconds: number;
+  technique: string;
+  notes?: string | null;
+}
+
+export interface RecipeExplanation {
+  reasoning_summary: string;
+  parameter_rationale: Record<string, string>;
+  assumptions: string[];
+}
+
+export interface TroubleshootingTip {
+  symptom: string;
+  likely_cause: string;
+  adjustment: string;
+}
+
+export interface PersonalisedRecipe {
+  recipe_id: string;
+  coffee_profile_id: string;
+  source_type: string;
+  generation_model?: string | null;
+  dripper: string;
+  grinder?: string | null;
+  filter_type?: string | null;
+  dose_g: number;
+  water_g: number;
+  ratio: string;
+  water_temperature_c: number;
+  grind_description: string;
+  grind_setting?: string | null;
+  filter_prep?: string | null;
+  bloom_water_g: number;
+  bloom_time_seconds: number;
+  pour_schedule: PourStep[];
+  target_brew_time_seconds: number;
+  step_by_step_instructions: string[];
+  expected_flavour: string;
+  flavour_is_prediction: boolean;
+  explanation: RecipeExplanation;
+  troubleshooting: TroubleshootingTip[];
+  limitations: string[];
+  confidence: number;
+  created_at: string;
+}
+
+export interface RecipeGenerateRequest {
+  coffee_profile_id: string;
+  dripper?: string;
+  grinder?: string;
+  dose_preference_g?: number;
+  target_strength?: 'light' | 'balanced' | 'strong';
+}

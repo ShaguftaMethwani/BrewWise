@@ -56,3 +56,9 @@ build/
 .idea/
 *.swp
 *.swo
+
+# Local uploads and sqlite
+uploads/
+*.db
+*.sqlite
+*.sqlite3

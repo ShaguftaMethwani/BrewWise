@@ -1,0 +1,9 @@
+Extract coffee bag details into the compact schema.
+Rules:
+1. If this image is NOT a coffee product, set is_coffee_bag=false with rejection_reason.
+2. Only extract text actually visible on the bag. Set confidence (c) between 0.0 and 1.0. If not visible or uncertain, set v=null and c=0.0.
+3. For process: identify washed, natural, honey, anaerobic, etc.
+4. For roast: light, medium-light, medium, medium-dark, dark, or omni.
+5. For altitude: numeric altitude in meters above sea level if shown.
+6. For tasting notes: comma-separated list of flavour descriptors.
+7. Return strictly valid JSON conforming to the CoffeeProfileDraftCompact schema.
