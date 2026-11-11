@@ -170,7 +170,7 @@ class RecipeGenerator:
 
         # Check cache
         outcome_code = evidence.match_outcome if evidence else "none"
-        cache_key = f"recipe:{coffee.id}:{dripper}:{dose}:{request.target_strength}:{outcome_code}"
+        cache_key = f"recipe:{coffee.id}:{dripper}:{grinder}:{dose}:{request.target_strength}:{outcome_code}"
         if self.cache_provider:
             cached = await self.cache_provider.get(cache_key)
             if cached:

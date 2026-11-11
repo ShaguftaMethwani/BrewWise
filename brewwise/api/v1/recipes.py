@@ -221,37 +221,39 @@ async def generate_recipe(
     # Grounded recipe generation (single call)
     recipe = await generator.generate(profile_draft, request, evidence=evidence_pkg)
 
-    # Save to db
-    db_recipe = RecipeModel(
-        id=recipe.recipe_id,
-        coffee_profile_id=recipe.coffee_profile_id,
-        source_type=recipe.source_type,
-        generation_model=recipe.generation_model,
-        dripper=recipe.dripper,
-        grinder=recipe.grinder,
-        filter_type=recipe.filter_type,
-        dose_g=recipe.dose_g,
-        water_g=recipe.water_g,
-        ratio=recipe.ratio,
-        water_temperature_c=recipe.water_temperature_c,
-        grind_description=recipe.grind_description,
-        grind_setting=recipe.grind_setting,
-        filter_prep=recipe.filter_prep,
-        bloom_water_g=recipe.bloom_water_g,
-        bloom_time_seconds=recipe.bloom_time_seconds,
-        target_brew_time_seconds=recipe.target_brew_time_seconds,
-        pour_schedule=[p.model_dump(mode="json") for p in recipe.pour_schedule],
-        step_by_step_instructions=recipe.step_by_step_instructions,
-        expected_flavour=recipe.expected_flavour,
-        explanation=recipe.explanation.model_dump(mode="json"),
-        troubleshooting=[t.model_dump(mode="json") for t in recipe.troubleshooting],
-        limitations=recipe.limitations,
-        source_recipes=[s.model_dump(mode="json") for s in recipe.source_recipes],
-        adaptations=[a.model_dump(mode="json") for a in recipe.adaptations],
-        confidence=recipe.confidence
-    )
-    db.add(db_recipe)
-    await db.commit()
+    # Save to db if not already inserted
+    existing_recipe = await db.get(RecipeModel, recipe.recipe_id)
+    if not existing_recipe:
+        db_recipe = RecipeModel(
+            id=recipe.recipe_id,
+            coffee_profile_id=recipe.coffee_profile_id,
+            source_type=recipe.source_type,
+            generation_model=recipe.generation_model,
+            dripper=recipe.dripper,
+            grinder=recipe.grinder,
+            filter_type=recipe.filter_type,
+            dose_g=recipe.dose_g,
+            water_g=recipe.water_g,
+            ratio=recipe.ratio,
+            water_temperature_c=recipe.water_temperature_c,
+            grind_description=recipe.grind_description,
+            grind_setting=recipe.grind_setting,
+            filter_prep=recipe.filter_prep,
+            bloom_water_g=recipe.bloom_water_g,
+            bloom_time_seconds=recipe.bloom_time_seconds,
+            target_brew_time_seconds=recipe.target_brew_time_seconds,
+            pour_schedule=[p.model_dump(mode="json") for p in recipe.pour_schedule],
+            step_by_step_instructions=recipe.step_by_step_instructions,
+            expected_flavour=recipe.expected_flavour,
+            explanation=recipe.explanation.model_dump(mode="json"),
+            troubleshooting=[t.model_dump(mode="json") for t in recipe.troubleshooting],
+            limitations=recipe.limitations,
+            source_recipes=[s.model_dump(mode="json") for s in recipe.source_recipes],
+            adaptations=[a.model_dump(mode="json") for a in recipe.adaptations],
+            confidence=recipe.confidence
+        )
+        db.add(db_recipe)
+        await db.commit()
 
     return recipe
 
