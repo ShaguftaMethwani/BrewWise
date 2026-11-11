@@ -364,11 +364,9 @@ export const Settings: React.FC = () => {
               <button
                 type="submit"
                 disabled={authLoading}
+                className="btn-pastel-sage"
                 style={{
-                  background: 'linear-gradient(135deg, #d97706, #b45309)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '10px 20px',
+                  padding: '10px 22px',
                   borderRadius: '8px',
                   fontWeight: 600,
                   fontSize: '0.9rem',

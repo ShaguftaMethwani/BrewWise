@@ -24,8 +24,8 @@ export const ConfidenceBadge: React.FC<Props> = ({ confidence, source }) => {
 
   if (source === 'user_override') {
     label = 'Edited';
-    color = 'var(--accent-gold)';
-    bg = 'rgba(229, 168, 82, 0.15)';
+    color = 'var(--pastel-sky-text)';
+    bg = 'var(--pastel-sky)';
   }
 
   return (

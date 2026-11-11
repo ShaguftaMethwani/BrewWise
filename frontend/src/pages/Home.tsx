@@ -12,47 +12,43 @@ export const Home: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '40px 20px 80px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '40px' }} className="animate-fade-in">
+    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '48px 20px 80px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '44px' }} className="animate-fade-in">
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
           padding: '6px 14px',
-          borderRadius: 'var(--radius-full)',
-          background: 'rgba(229, 168, 82, 0.1)',
-          border: '1px solid rgba(229, 168, 82, 0.25)',
-          color: 'var(--accent-gold)',
-          fontSize: '0.85rem',
+          borderRadius: '999px',
+          background: 'var(--pastel-sage)',
+          border: '1px solid var(--pastel-sage-border)',
+          color: 'var(--pastel-sage-text)',
+          fontSize: '0.82rem',
           fontWeight: 600,
-          marginBottom: '16px',
+          marginBottom: '18px',
         }}>
           <Sparkles size={14} />
-          <span>Intelligent Specialty Pour-Over Assistant</span>
+          <span>Intelligent Pour-Over Precision</span>
         </div>
 
         <h1 style={{
-          fontSize: 'clamp(2.4rem, 5vw, 3.6rem)',
+          fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)',
           fontWeight: 700,
           letterSpacing: '-0.03em',
           lineHeight: 1.15,
-          fontFamily: 'var(--font-serif)',
+          color: 'var(--text-primary)',
           marginBottom: '16px',
         }}>
           Dial in every bean.<br />
-          <span style={{
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-copper))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            From bag photo to perfect cup.
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>
+            From bag photo to balanced cup.
           </span>
         </h1>
 
         <p style={{
-          fontSize: '1.1rem',
+          fontSize: '1.05rem',
           color: 'var(--text-secondary)',
-          maxWidth: '560px',
+          maxWidth: '540px',
           margin: '0 auto',
           lineHeight: 1.6,
         }}>
@@ -66,64 +62,67 @@ export const Home: React.FC = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         gap: '20px',
       }}>
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="glass-panel" style={{ padding: '24px', background: '#ffffff' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: '40px',
+            height: '40px',
             borderRadius: '10px',
-            background: 'rgba(229, 168, 82, 0.12)',
+            background: 'var(--pastel-sky)',
+            border: '1px solid var(--pastel-sky-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--accent-gold)',
+            color: 'var(--pastel-sky-text)',
             marginBottom: '14px',
           }}>
-            <Eye size={20} />
+            <Eye size={18} />
           </div>
-          <h4 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '6px' }}>Vision Bag OCR</h4>
+          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Vision Bag OCR</h4>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Token-optimised Gemini Flash vision extracts roaster, varietals, process method, and notes with high precision.
           </p>
         </div>
 
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="glass-panel" style={{ padding: '24px', background: '#ffffff' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: '40px',
+            height: '40px',
             borderRadius: '10px',
-            background: 'rgba(16, 185, 129, 0.12)',
+            background: 'var(--pastel-sage)',
+            border: '1px solid var(--pastel-sage-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--badge-high)',
+            color: 'var(--pastel-sage-text)',
             marginBottom: '14px',
           }}>
-            <ShieldCheck size={20} />
+            <ShieldCheck size={18} />
           </div>
-          <h4 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '6px' }}>Strict Verification</h4>
+          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Strict Verification</h4>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Mathematical validation ensures water ratios, pour steps, temperature thresholds, and drawdown timings always sum correctly.
           </p>
         </div>
 
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="glass-panel" style={{ padding: '24px', background: '#ffffff' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: '40px',
+            height: '40px',
             borderRadius: '10px',
-            background: 'rgba(212, 139, 70, 0.12)',
+            background: 'var(--pastel-lavender)',
+            border: '1px solid var(--pastel-lavender-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--accent-amber)',
+            color: 'var(--pastel-lavender-text)',
             marginBottom: '14px',
           }}>
-            <Compass size={20} />
+            <Compass size={18} />
           </div>
-          <h4 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '6px' }}>Equipment Aware</h4>
+          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Equipment Aware</h4>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Flow dynamics and grind settings adjusted specifically for your conical or flat dripper and precision hand/electric grinder.
           </p>

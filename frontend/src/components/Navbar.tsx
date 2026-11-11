@@ -19,10 +19,9 @@ export const Navbar: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '16px 24px',
+      padding: '16px 28px',
       borderBottom: '1px solid var(--border-subtle)',
-      background: 'rgba(15, 13, 12, 0.85)',
-      backdropFilter: 'blur(12px)',
+      background: '#ffffff',
       position: 'sticky',
       top: 0,
       zIndex: 50,
@@ -32,47 +31,48 @@ export const Navbar: React.FC = () => {
           width: '36px',
           height: '36px',
           borderRadius: '10px',
-          background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-copper))',
+          background: 'var(--pastel-sage)',
+          border: '1px solid var(--pastel-sage-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: 'var(--shadow-glow)',
         }}>
-          <Coffee size={20} color="#0f0d0c" />
+          <Coffee size={18} color="var(--pastel-sage-text)" />
         </div>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{
-            fontSize: '1.25rem',
+            fontSize: '1.2rem',
             fontWeight: 700,
             letterSpacing: '-0.02em',
-            background: 'linear-gradient(to right, #fff, var(--accent-crema))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            color: 'var(--text-primary)',
           }}>
             BrewWise
           </span>
           <span style={{
-            fontSize: '0.65rem',
+            fontSize: '0.7rem',
+            fontWeight: 600,
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            color: 'var(--accent-gold)',
-            marginLeft: '6px',
-            padding: '2px 6px',
-            background: 'rgba(229, 168, 82, 0.1)',
-            borderRadius: '4px',
-            border: '1px solid rgba(229, 168, 82, 0.25)',
+            letterSpacing: '0.05em',
+            color: 'var(--pastel-sage-text)',
+            padding: '2px 8px',
+            background: 'var(--pastel-sage)',
+            borderRadius: '999px',
+            border: '1px solid var(--pastel-sage-border)',
           }}>
-            Dial-In AI
+            Dial-In
           </span>
         </div>
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Link
           to="/"
           style={{
             fontSize: '0.88rem',
-            color: isActive('/') ? 'var(--accent-gold)' : 'var(--text-secondary)',
+            color: isActive('/') ? 'var(--text-primary)' : 'var(--text-secondary)',
+            background: isActive('/') ? 'var(--pastel-sand)' : 'transparent',
+            borderRadius: '8px',
+            padding: '8px 14px',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
@@ -80,7 +80,7 @@ export const Navbar: React.FC = () => {
             textDecoration: 'none',
           }}
         >
-          <Sparkles size={16} color={isActive('/') ? 'var(--accent-gold)' : 'currentColor'} />
+          <Sparkles size={15} color={isActive('/') ? 'var(--text-primary)' : 'currentColor'} />
           Scan Bag
         </Link>
 
@@ -88,7 +88,10 @@ export const Navbar: React.FC = () => {
           to="/history"
           style={{
             fontSize: '0.88rem',
-            color: isActive('/history') ? 'var(--accent-gold)' : 'var(--text-secondary)',
+            color: isActive('/history') ? 'var(--text-primary)' : 'var(--text-secondary)',
+            background: isActive('/history') ? 'var(--pastel-sand)' : 'transparent',
+            borderRadius: '8px',
+            padding: '8px 14px',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
@@ -96,7 +99,7 @@ export const Navbar: React.FC = () => {
             textDecoration: 'none',
           }}
         >
-          <BookOpen size={16} color={isActive('/history') ? 'var(--accent-gold)' : 'currentColor'} />
+          <BookOpen size={15} color={isActive('/history') ? 'var(--text-primary)' : 'currentColor'} />
           History
         </Link>
 
@@ -104,7 +107,10 @@ export const Navbar: React.FC = () => {
           to="/settings"
           style={{
             fontSize: '0.88rem',
-            color: isActive('/settings') ? 'var(--accent-gold)' : 'var(--text-secondary)',
+            color: isActive('/settings') ? 'var(--text-primary)' : 'var(--text-secondary)',
+            background: isActive('/settings') ? 'var(--pastel-sand)' : 'transparent',
+            borderRadius: '8px',
+            padding: '8px 14px',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
@@ -112,7 +118,7 @@ export const Navbar: React.FC = () => {
             textDecoration: 'none',
           }}
         >
-          <SettingsIcon size={16} color={isActive('/settings') ? 'var(--accent-gold)' : 'currentColor'} />
+          <SettingsIcon size={15} color={isActive('/settings') ? 'var(--text-primary)' : 'currentColor'} />
           {user ? user.display_name.split(' ')[0] : 'Settings'}
         </Link>
       </div>

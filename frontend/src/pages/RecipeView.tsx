@@ -158,18 +158,7 @@ export const RecipeView: React.FC = () => {
       </div>
 
       {/* Main Recipe Header Card */}
-      <div className="glass-panel" style={{ padding: '32px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{
-          position: 'absolute',
-          top: '-40px',
-          right: '-40px',
-          width: '180px',
-          height: '180px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(229, 168, 82, 0.15) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
+      <div className="glass-panel" style={{ padding: '32px', marginBottom: '24px', background: '#ffffff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>

@@ -3,37 +3,74 @@
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  --bg-primary: #0f0d0c;
-  --bg-surface: #181412;
-  --bg-elevated: #231d1a;
-  --bg-card: rgba(26, 22, 20, 0.85);
+  /* Clean White & Minimal Palette */
+  --bg-primary: #ffffff;
+  --bg-surface: #fafafa;
+  --bg-elevated: #f4f4f5;
+  --bg-card: #ffffff;
 
-  --accent-gold: #e5a852;
-  --accent-amber: #d48b46;
-  --accent-copper: #c47631;
-  --accent-crema: #f3dfca;
+  /* Pastel Palette Tokens */
+  --pastel-sage: #e8f5e9;
+  --pastel-sage-text: #1b5e20;
+  --pastel-sage-border: #c8e6c9;
+  --pastel-sage-hover: #d7edd9;
 
-  --text-primary: #f8f6f4;
-  --text-secondary: #a39891;
-  --text-muted: #6e645e;
+  --pastel-sky: #e0f2fe;
+  --pastel-sky-text: #0369a1;
+  --pastel-sky-border: #bae6fd;
+  --pastel-sky-hover: #cdeafe;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(229, 168, 82, 0.35);
+  --pastel-lavender: #ede9fe;
+  --pastel-lavender-text: #5b21b6;
+  --pastel-lavender-border: #ddd6fe;
+  --pastel-lavender-hover: #e0d9fc;
 
-  --badge-high: #10b981;
-  --badge-high-bg: rgba(16, 185, 129, 0.15);
-  --badge-med: #f59e0b;
-  --badge-med-bg: rgba(245, 158, 11, 0.15);
-  --badge-low: #ef4444;
-  --badge-low-bg: rgba(239, 68, 68, 0.15);
+  --pastel-peach: #fff1f2;
+  --pastel-peach-text: #9f1239;
+  --pastel-peach-border: #fecdd3;
+  --pastel-peach-hover: #ffe4e6;
+
+  --pastel-butter: #fef9c3;
+  --pastel-butter-text: #854d0e;
+  --pastel-butter-border: #fef08a;
+
+  --pastel-sand: #f5f5f4;
+  --pastel-sand-text: #292524;
+  --pastel-sand-border: #e7e5e4;
+  --pastel-sand-hover: #eceae8;
+
+  /* Backward compatible tokens mapped to clean modern accents */
+  --accent-gold: #1b5e20;
+  --accent-amber: #854d0e;
+  --accent-copper: #2e7d32;
+  --accent-crema: #18181b;
+
+  /* Typography */
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+
+  /* Clean Crisp Borders */
+  --border-subtle: #e4e4e7;
+  --border-glow: #d4d4d8;
+
+  /* Clean Badges */
+  --badge-high: #15803d;
+  --badge-high-bg: #dcfce7;
+  --badge-med: #854d0e;
+  --badge-med-bg: #fef9c3;
+  --badge-low: #b91c1c;
+  --badge-low-bg: #fee2e2;
 
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 9999px;
 
-  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 25px rgba(229, 168, 82, 0.2);
+  /* Minimal subtle shadows */
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-glow: none;
 }
 
 * {
@@ -44,15 +81,11 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--bg-primary);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  background-image: 
-    radial-gradient(circle at 15% 10%, rgba(229, 168, 82, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(196, 118, 49, 0.06) 0%, transparent 40%);
-  background-attachment: fixed;
 }
 
 /* Base interactive elements */
@@ -66,52 +99,91 @@ button {
   cursor: pointer;
   border: none;
   outline: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s ease;
 }
 
 input, select, textarea {
   font-family: var(--font-sans);
   color: var(--text-primary);
-  background: var(--bg-elevated);
+  background: #ffffff;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 0.95rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--accent-gold);
-  box-shadow: 0 0 0 3px rgba(229, 168, 82, 0.2);
+  border-color: #a1a1aa;
+  box-shadow: 0 0 0 2px #e4e4e7;
 }
 
-/* Glassmorphism card utilities */
+/* Clean minimal card utilities */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
 }
 
 .glow-hover:hover {
-  border-color: var(--border-glow);
-  box-shadow: var(--shadow-glow);
+  border-color: #d4d4d8;
+  box-shadow: var(--shadow-hover);
+}
+
+/* Reusable pastel button utility classes */
+.btn-pastel-sage {
+  background: var(--pastel-sage) !important;
+  color: var(--pastel-sage-text) !important;
+  border: 1px solid var(--pastel-sage-border) !important;
+}
+.btn-pastel-sage:hover:not(:disabled) {
+  background: var(--pastel-sage-hover) !important;
+}
+
+.btn-pastel-sky {
+  background: var(--pastel-sky) !important;
+  color: var(--pastel-sky-text) !important;
+  border: 1px solid var(--pastel-sky-border) !important;
+}
+.btn-pastel-sky:hover:not(:disabled) {
+  background: var(--pastel-sky-hover) !important;
+}
+
+.btn-pastel-lavender {
+  background: var(--pastel-lavender) !important;
+  color: var(--pastel-lavender-text) !important;
+  border: 1px solid var(--pastel-lavender-border) !important;
+}
+.btn-pastel-lavender:hover:not(:disabled) {
+  background: var(--pastel-lavender-hover) !important;
+}
+
+.btn-pastel-peach {
+  background: var(--pastel-peach) !important;
+  color: var(--pastel-peach-text) !important;
+  border: 1px solid var(--pastel-peach-border) !important;
+}
+.btn-pastel-peach:hover:not(:disabled) {
+  background: var(--pastel-peach-hover) !important;
+}
+
+.btn-pastel-sand {
+  background: var(--pastel-sand) !important;
+  color: var(--pastel-sand-text) !important;
+  border: 1px solid var(--pastel-sand-border) !important;
+}
+.btn-pastel-sand:hover:not(:disabled) {
+  background: var(--pastel-sand-hover) !important;
 }
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 15px rgba(229, 168, 82, 0.2); }
-  50% { box-shadow: 0 0 30px rgba(229, 168, 82, 0.4); }
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.25s ease-out forwards;
 }

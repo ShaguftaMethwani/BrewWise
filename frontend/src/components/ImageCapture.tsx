@@ -48,7 +48,7 @@ export const ImageCapture: React.FC<Props> = ({ onScanSuccess }) => {
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '28px', maxWidth: '580px', margin: '0 auto', textAlign: 'center' }}>
+    <div className="glass-panel" style={{ padding: '28px', maxWidth: '580px', margin: '0 auto', textAlign: 'center', background: '#ffffff' }}>
       <input
         type="file"
         ref={fileInputRef}
@@ -66,27 +66,27 @@ export const ImageCapture: React.FC<Props> = ({ onScanSuccess }) => {
       />
 
       {preview ? (
-        <div style={{ position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '20px' }}>
+        <div style={{ position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '20px', border: '1px solid var(--border-subtle)' }}>
           <img
             src={preview}
             alt="Coffee bag preview"
-            style={{ width: '100%', maxHeight: '340px', objectFit: 'contain', background: '#0a0908' }}
+            style={{ width: '100%', maxHeight: '340px', objectFit: 'contain', background: '#f4f4f5' }}
           />
           {isScanning && (
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(15, 13, 12, 0.85)',
+              background: 'rgba(255, 255, 255, 0.92)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '14px',
             }}>
-              <RefreshCw size={36} color="var(--accent-gold)" style={{ animation: 'spin 1.5s linear infinite' }} />
+              <RefreshCw size={36} color="var(--pastel-sage-text)" style={{ animation: 'spin 1.5s linear infinite' }} />
               <div>
-                <p style={{ fontWeight: 600, color: '#fff', fontSize: '1.05rem' }}>Analyzing Coffee Bag...</p>
-                <p style={{ fontSize: '0.85rem', color: 'var(--accent-crema)', marginTop: '4px' }}>
+                <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.05rem' }}>Analyzing Coffee Bag...</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                   Extracting roaster, process, and roast profile with Gemini Flash
                 </p>
               </div>
@@ -99,30 +99,31 @@ export const ImageCapture: React.FC<Props> = ({ onScanSuccess }) => {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           style={{
-            border: '2px dashed var(--border-subtle)',
+            border: '1px dashed #d4d4d8',
             borderRadius: 'var(--radius-md)',
             padding: '48px 24px',
             cursor: 'pointer',
-            transition: 'all 0.2s',
-            background: 'rgba(255, 255, 255, 0.02)',
+            transition: 'all 0.15s ease',
+            background: '#fafafa',
             marginBottom: '20px',
           }}
           className="glow-hover"
         >
           <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: 'rgba(229, 168, 82, 0.1)',
+            width: '56px',
+            height: '56px',
+            borderRadius: '12px',
+            background: 'var(--pastel-sage)',
+            border: '1px solid var(--pastel-sage-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 16px',
-            color: 'var(--accent-gold)',
+            color: 'var(--pastel-sage-text)',
           }}>
-            <UploadCloud size={32} />
+            <UploadCloud size={28} />
           </div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '6px' }}>Upload or Drop Coffee Bag Photo</h3>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Upload or Drop Coffee Bag Photo</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '380px', margin: '0 auto' }}>
             Take a clear photo of the front of your coffee bag showing roaster, origin, process, or tasting notes.
           </p>
@@ -138,7 +139,7 @@ export const ImageCapture: React.FC<Props> = ({ onScanSuccess }) => {
           background: 'var(--badge-low-bg)',
           border: '1px solid var(--badge-low)',
           borderRadius: 'var(--radius-sm)',
-          color: '#fca5a5',
+          color: 'var(--badge-low)',
           fontSize: '0.9rem',
           marginBottom: '20px',
           textAlign: 'left',
@@ -152,17 +153,15 @@ export const ImageCapture: React.FC<Props> = ({ onScanSuccess }) => {
         <button
           onClick={() => cameraInputRef.current?.click()}
           disabled={isScanning}
+          className="btn-pastel-sage"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '12px 20px',
+            padding: '12px 22px',
             borderRadius: 'var(--radius-sm)',
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-copper))',
-            color: '#0f0d0c',
             fontWeight: 600,
             fontSize: '0.95rem',
-            boxShadow: 'var(--shadow-glow)',
           }}
         >
           <Camera size={18} />
@@ -172,15 +171,13 @@ export const ImageCapture: React.FC<Props> = ({ onScanSuccess }) => {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isScanning}
+          className="btn-pastel-sand"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '12px 20px',
+            padding: '12px 22px',
             borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-primary)',
             fontWeight: 500,
             fontSize: '0.95rem',
           }}

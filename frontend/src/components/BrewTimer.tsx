@@ -205,8 +205,9 @@ export const BrewTimer: React.FC<Props> = ({ pourSchedule, targetBrewTimeSeconds
 
       <div style={{
         textAlign: 'center',
-        padding: '20px 0',
-        background: 'rgba(0, 0, 0, 0.25)',
+        padding: '24px 0',
+        background: '#fafafa',
+        border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-sm)',
         marginBottom: '20px',
       }}>
@@ -223,7 +224,7 @@ export const BrewTimer: React.FC<Props> = ({ pourSchedule, targetBrewTimeSeconds
         <div style={{
           width: '80%',
           height: '6px',
-          background: 'rgba(255, 255, 255, 0.08)',
+          background: '#e4e4e7',
           borderRadius: 'var(--radius-full)',
           margin: '12px auto 0',
           overflow: 'hidden',
@@ -231,30 +232,31 @@ export const BrewTimer: React.FC<Props> = ({ pourSchedule, targetBrewTimeSeconds
           <div style={{
             height: '100%',
             width: `${progressPercent}%`,
-            background: 'linear-gradient(90deg, var(--accent-copper), var(--accent-gold))',
+            background: 'var(--pastel-sage-text)',
             transition: 'width 0.4s ease',
           }} />
         </div>
       </div>
 
       <div style={{
-        background: 'var(--bg-elevated)',
+        background: '#fafafa',
+        border: '1px solid var(--border-subtle)',
         padding: '16px',
         borderRadius: 'var(--radius-sm)',
         marginBottom: '20px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent-gold)' }}>
+            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--pastel-sage-text)', fontWeight: 600 }}>
               Current Pour Action (Step {activeStep?.step_number})
             </span>
-            <p style={{ fontSize: '1rem', fontWeight: 600, marginTop: '2px' }}>
+            <p style={{ fontSize: '1rem', fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
               {activeStep?.technique}
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Scale Target</span>
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-crema)' }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               {activeStep?.cumulative_water_g}g
             </p>
           </div>
@@ -270,17 +272,15 @@ export const BrewTimer: React.FC<Props> = ({ pourSchedule, targetBrewTimeSeconds
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
         <button
           onClick={toggleTimer}
+          className={isActive ? 'btn-pastel-peach' : 'btn-pastel-sage'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             padding: '12px 28px',
             borderRadius: 'var(--radius-sm)',
-            background: isActive ? 'var(--bg-elevated)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-copper))',
-            color: isActive ? 'var(--text-primary)' : '#0f0d0c',
             fontWeight: 600,
             fontSize: '1rem',
-            boxShadow: isActive ? 'none' : 'var(--shadow-glow)',
             cursor: 'pointer'
           }}
         >
@@ -290,15 +290,13 @@ export const BrewTimer: React.FC<Props> = ({ pourSchedule, targetBrewTimeSeconds
 
         <button
           onClick={resetTimer}
+          className="btn-pastel-sand"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             padding: '12px 18px',
             borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-secondary)',
             fontWeight: 500,
             cursor: 'pointer'
           }}

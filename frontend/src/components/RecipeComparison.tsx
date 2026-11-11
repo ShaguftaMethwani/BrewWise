@@ -177,10 +177,8 @@ export const RecipeComparison: React.FC<RecipeComparisonProps> = ({ brewA, brewB
         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
+            className="btn-pastel-sage"
             style={{
-              background: 'linear-gradient(135deg, #d97706, #b45309)',
-              color: '#ffffff',
-              border: 'none',
               padding: '10px 24px',
               borderRadius: '8px',
               fontWeight: 600,

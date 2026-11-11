@@ -172,10 +172,8 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ recipe, onBrewLogged
             <button
               type="button"
               onClick={() => setLoggedBrew(null)}
+              className="btn-pastel-sand"
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: '#fafaf9',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
                 padding: '8px 16px',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -188,10 +186,8 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ recipe, onBrewLogged
               <button
                 type="button"
                 onClick={onClose}
+                className="btn-pastel-sage"
                 style={{
-                  background: 'linear-gradient(135deg, #d97706, #b45309)',
-                  color: '#ffffff',
-                  border: 'none',
                   padding: '8px 16px',
                   borderRadius: '8px',
                   fontWeight: 600,
@@ -372,10 +368,8 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ recipe, onBrewLogged
               <button
                 type="button"
                 onClick={onClose}
+                className="btn-pastel-sand"
                 style={{
-                  background: 'transparent',
-                  color: '#a8a29e',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
                   padding: '10px 18px',
                   borderRadius: '8px',
                   fontSize: '0.9rem',
@@ -388,20 +382,17 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ recipe, onBrewLogged
             <button
               type="submit"
               disabled={isSubmitting}
+              className="btn-pastel-sage"
               style={{
-                background: 'linear-gradient(135deg, #d97706, #b45309)',
-                color: '#ffffff',
-                border: 'none',
                 padding: '10px 22px',
                 borderRadius: '8px',
                 fontSize: '0.9rem',
                 fontWeight: 600,
                 cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 opacity: isSubmitting ? 0.7 : 1,
-                boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)'
               }}
             >
-              {isSubmitting ? 'Analysing Cup...' : 'Log Brew & Get Diagnosis 🚀'}
+              {isSubmitting ? 'Analysing Cup...' : 'Log Brew & Get Diagnosis'}
             </button>
           </div>
         </form>

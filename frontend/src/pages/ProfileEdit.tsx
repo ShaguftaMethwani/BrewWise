@@ -339,19 +339,17 @@ export const ProfileEdit: React.FC = () => {
         <button
           onClick={handleGenerate}
           disabled={generating}
+          className="btn-pastel-sage"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '10px',
-            padding: '16px 36px',
+            padding: '15px 36px',
             borderRadius: 'var(--radius-sm)',
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-copper))',
-            color: '#0f0d0c',
             fontWeight: 700,
-            fontSize: '1.1rem',
-            boxShadow: 'var(--shadow-glow)',
+            fontSize: '1.05rem',
+            cursor: generating ? 'not-allowed' : 'pointer',
           }}
-          className="glow-hover"
         >
           {generating ? (
             <>
