@@ -36,11 +36,14 @@ def get_llm_provider() -> Optional[LLMProvider]:
     return None
 
 
+from brewwise.services.vision.mock_vision import MockVisionProvider
+
+
 @lru_cache()
-def get_vision_provider() -> Optional[VisionProvider]:
-    if settings.GOOGLE_API_KEY:
+def get_vision_provider() -> VisionProvider:
+    if settings.GOOGLE_API_KEY and settings.GOOGLE_API_KEY.strip() != "":
         return GeminiVisionProvider(api_key=settings.GOOGLE_API_KEY, model=settings.LLM_MODEL)
-    return None
+    return MockVisionProvider()
 
 
 def get_coffee_extractor() -> CoffeeBagExtractor:

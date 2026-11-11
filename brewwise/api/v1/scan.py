@@ -56,26 +56,28 @@ async def scan_coffee_bag(
             detail=draft.rejection_reason or "This does not appear to be a coffee bag."
         )
 
-    # Persist in DB
-    overall_conf = calculate_overall_confidence(draft)
-    db_profile = CoffeeProfileModel(
-        id=draft.id,
-        brand=draft.brand.value,
-        product_name=draft.product_name.value,
-        country=draft.country.value,
-        region=draft.region.value,
-        estate=draft.estate.value,
-        varietal=draft.varietal.value,
-        process=draft.process.value,
-        roast_level=draft.roast_level.value,
-        roast_date=draft.roast_date.value,
-        tasting_notes=draft.tasting_notes.value,
-        altitude=draft.altitude.value,
-        image_url=draft.image_url,
-        confidence=overall_conf,
-        raw_metadata=draft.model_dump(mode="json")
-    )
-    db.add(db_profile)
-    await db.commit()
+    # Persist in DB (check if already saved via cache)
+    existing = await db.get(CoffeeProfileModel, draft.id)
+    if not existing:
+        overall_conf = calculate_overall_confidence(draft)
+        db_profile = CoffeeProfileModel(
+            id=draft.id,
+            brand=draft.brand.value,
+            product_name=draft.product_name.value,
+            country=draft.country.value,
+            region=draft.region.value,
+            estate=draft.estate.value,
+            varietal=draft.varietal.value,
+            process=draft.process.value,
+            roast_level=draft.roast_level.value,
+            roast_date=draft.roast_date.value,
+            tasting_notes=draft.tasting_notes.value,
+            altitude=draft.altitude.value,
+            image_url=draft.image_url,
+            confidence=overall_conf,
+            raw_metadata=draft.model_dump(mode="json")
+        )
+        db.add(db_profile)
+        await db.commit()
 
     return draft

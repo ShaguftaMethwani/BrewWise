@@ -51,6 +51,8 @@ class CoffeeBagExtractor:
         image_url = await self.storage_provider.get_url(storage_id)
 
         # 4. Vision extraction
+        if not self.vision_provider:
+            raise ValueError("No vision provider configured. Please set GOOGLE_API_KEY in your environment.")
         compact = await self.vision_provider.extract_coffee_profile(image_bytes, content_type)
 
         # 5. Inflate compact to full schema
