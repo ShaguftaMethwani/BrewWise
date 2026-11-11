@@ -8,7 +8,7 @@ interface EvidencePanelProps {
 }
 
 export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (loading) {
     return (
@@ -113,7 +113,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            {isExpanded ? 'Hide' : 'Show Details'}
+            {isExpanded ? 'Hide Details' : 'Expand Evidence'}
           </span>
           <span style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', color: 'var(--text-muted)' }}>
             ▼
@@ -121,59 +121,58 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
         </div>
       </div>
 
-      {/* Live Web Discovery Status Notification */}
-      {evidence.discovery_status && evidence.discovery_status !== 'disabled' && (
-        <div
-          style={{
-            marginTop: '0.85rem',
-            padding: '0.55rem 0.85rem',
-            borderRadius: '6px',
-            fontSize: '0.82rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            background:
-              evidence.discovery_status === 'skipped_sufficient_kb'
-                ? 'var(--pastel-sky)'
-                : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
-                ? 'var(--pastel-sage)'
-                : 'var(--pastel-sand)',
-            border:
-              evidence.discovery_status === 'skipped_sufficient_kb'
-                ? '1px solid var(--pastel-sky-border)'
-                : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
-                ? '1px solid var(--pastel-sage-border)'
-                : '1px solid var(--border-subtle)',
-            color:
-              evidence.discovery_status === 'skipped_sufficient_kb'
-                ? 'var(--pastel-sky-text)'
-                : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
-                ? 'var(--pastel-sage-text)'
-                : 'var(--text-secondary)',
-          }}
-        >
-          <span>
-            {evidence.discovery_status === 'skipped_sufficient_kb'
-              ? '⚡'
-              : evidence.discovery_status === 'success'
-              ? '🌐'
-              : 'ℹ️'}
-          </span>
-          <span>
-            {evidence.discovery_message ||
-              (evidence.discovery_status === 'skipped_sufficient_kb'
-                ? 'Skipped web crawler: High confidence recipes verified in knowledge base.'
-                : 'Inline web discovery completed.')}
-          </span>
-        </div>
-      )}
-
-      <p style={{ margin: '0.6rem 0 0', fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-        {evidence.coverage_summary}
-      </p>
-
       {isExpanded && (
-        <div style={{ marginTop: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Live Web Discovery Status Notification */}
+          {evidence.discovery_status && evidence.discovery_status !== 'disabled' && (
+            <div
+              style={{
+                padding: '0.55rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background:
+                  evidence.discovery_status === 'skipped_sufficient_kb'
+                    ? 'var(--pastel-sky)'
+                    : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
+                    ? 'var(--pastel-sage)'
+                    : 'var(--pastel-sand)',
+                border:
+                  evidence.discovery_status === 'skipped_sufficient_kb'
+                    ? '1px solid var(--pastel-sky-border)'
+                    : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
+                    ? '1px solid var(--pastel-sage-border)'
+                    : '1px solid var(--border-subtle)',
+                color:
+                  evidence.discovery_status === 'skipped_sufficient_kb'
+                    ? 'var(--pastel-sky-text)'
+                    : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
+                    ? 'var(--pastel-sage-text)'
+                    : 'var(--text-secondary)',
+              }}
+            >
+              <span>
+                {evidence.discovery_status === 'skipped_sufficient_kb'
+                  ? '⚡'
+                  : evidence.discovery_status === 'success'
+                  ? '🌐'
+                  : 'ℹ️'}
+              </span>
+              <span>
+                {evidence.discovery_message ||
+                  (evidence.discovery_status === 'skipped_sufficient_kb'
+                    ? 'Skipped web crawler: High confidence recipes verified in knowledge base.'
+                    : 'Inline web discovery completed.')}
+              </span>
+            </div>
+          )}
+
+          <p style={{ margin: '0', fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            {evidence.coverage_summary}
+          </p>
+
           {/* Parameter Conflicts Alert */}
           {evidence.conflicts && evidence.conflicts.length > 0 && (
             <div

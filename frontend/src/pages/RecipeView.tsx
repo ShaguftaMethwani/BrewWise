@@ -35,7 +35,6 @@ export const RecipeView: React.FC = () => {
 
   const [showTroubleshooting, setShowTroubleshooting] = useState(true);
   const [showRationale, setShowRationale] = useState(true);
-  const [showAdaptations, setShowAdaptations] = useState(true);
 
   useEffect(() => {
     async function fetchRecipe() {
@@ -283,41 +282,6 @@ export const RecipeView: React.FC = () => {
         </div>
       </div>
 
-      {/* RAG Evidence Panel */}
-      <EvidencePanel evidence={evidence} loading={evidenceLoading} />
-
-      {/* Adaptations Section if present */}
-      {recipe.adaptations && recipe.adaptations.length > 0 && (
-        <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
-          <div
-            onClick={() => setShowAdaptations(!showAdaptations)}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-          >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Compass size={18} color="var(--accent-gold)" />
-              Barista Equipment & Parameter Adaptations ({recipe.adaptations.length})
-            </h3>
-            {showAdaptations ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </div>
-
-          {showAdaptations && (
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)', display: 'grid', gap: '10px' }}>
-              {recipe.adaptations.map((a, i) => (
-                <div key={i} style={{ background: 'var(--bg-elevated)', padding: '12px 14px', borderRadius: '8px', fontSize: '0.88rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <strong style={{ color: 'var(--accent-crema)' }}>{a.parameter}</strong>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                      {a.original_value} → <span style={{ color: '#10b981' }}>{a.adapted_value}</span>
-                    </span>
-                  </div>
-                  <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.84rem' }}>{a.rationale}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Interactive Brew Timer */}
       <div style={{ marginBottom: '28px' }}>
         <BrewTimer
@@ -482,7 +446,10 @@ export const RecipeView: React.FC = () => {
         </div>
       )}
 
-      <div style={{ textAlign: 'center' }}>
+      {/* Retrieved Grounding Evidence (Expandable on demand) */}
+      <EvidencePanel evidence={evidence} loading={evidenceLoading} />
+
+      <div style={{ textAlign: 'center', marginTop: '28px' }}>
         <Link
           to="/"
           style={{
