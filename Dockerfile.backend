@@ -11,6 +11,8 @@ COPY pyproject.toml README.md ./
 RUN pip install --no-cache-dir hatchling && pip install --no-cache-dir .
 
 COPY brewwise/ ./brewwise/
+COPY data/ ./data/
+COPY scripts/ ./scripts/
 
 EXPOSE 8000
 
