@@ -60,6 +60,22 @@ def test_grinder_guide_and_click_mappings():
     assert encore is not None
     assert "Baratza Encore" in encore
 
+    # 1Zpresso J-Max typed in various ways
+    jmax1 = map_grind_setting("1zpresso jmax", "Medium-Fine")
+    assert jmax1 is not None
+    assert "1Zpresso J-Max" in jmax1
+    assert "3.0.0" in jmax1
+
+    jmax2 = map_grind_setting("j-max", "Medium")
+    assert jmax2 is not None
+    assert "1Zpresso J-Max" in jmax2
+
+    # Kingrinder K6 & ZP6
+    k6 = map_grind_setting("k6", "Medium-Fine")
+    assert k6 is not None
+    assert "Kingrinder K6" in k6
+
+
 
 def test_dripper_guide_details():
     drippers = get_all_drippers()
