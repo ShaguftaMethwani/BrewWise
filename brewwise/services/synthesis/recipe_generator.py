@@ -17,6 +17,9 @@ from brewwise.schemas.recipe import (
 )
 from brewwise.services.synthesis.validator import RecipeValidator
 
+from brewwise.services.retrieval.evidence_evaluator import EvidencePackage
+from brewwise.services.synthesis.provenance_verifier import ProvenanceVerifier
+
 logger = logging.getLogger(__name__)
 
 
@@ -138,23 +141,33 @@ class RecipeGenerator:
         self.cache_provider = cache_provider
         self.model_name = model_name
 
-        prompt_path = Path(__file__).parent.parent.parent / "prompts" / "v1" / "generate_recipe.j2"
+        prompts_dir = Path(__file__).parent.parent.parent / "prompts" / "v1"
+        prompt_path = prompts_dir / "generate_recipe.j2"
+        grounded_prompt_path = prompts_dir / "generate_grounded_recipe.j2"
+
         if prompt_path.exists():
             self.template = Template(prompt_path.read_text(encoding="utf-8"))
         else:
             self.template = None
 
+        if grounded_prompt_path.exists():
+            self.grounded_template = Template(grounded_prompt_path.read_text(encoding="utf-8"))
+        else:
+            self.grounded_template = None
+
     async def generate(
         self,
         coffee: CoffeeProfileDraft,
-        request: RecipeGenerateRequest
+        request: RecipeGenerateRequest,
+        evidence: Optional[EvidencePackage] = None
     ) -> PersonalisedRecipe:
         dose = request.dose_preference_g or 15.0
         dripper = request.dripper or "Hario V60"
         grinder = request.grinder or "Specialty Grinder"
 
         # Check cache
-        cache_key = f"recipe:{coffee.id}:{dripper}:{dose}:{request.target_strength}"
+        outcome_code = evidence.match_outcome if evidence else "none"
+        cache_key = f"recipe:{coffee.id}:{dripper}:{dose}:{request.target_strength}:{outcome_code}"
         if self.cache_provider:
             cached = await self.cache_provider.get(cache_key)
             if cached:
@@ -165,21 +178,28 @@ class RecipeGenerator:
 
         generation_output: Optional[RecipeGenerationOutput] = None
 
-        if self.llm_provider and self.template:
-            prompt = self.template.render(
-                coffee=coffee,
-                dripper=dripper,
-                grinder=grinder,
-                dose_g=dose,
-                target_strength=request.target_strength
-            )
+        # Choose template: grounded if evidence exists, otherwise standard
+        active_template = self.grounded_template if (evidence and self.grounded_template) else self.template
+
+        if self.llm_provider and active_template:
+            template_kwargs = {
+                "coffee": coffee,
+                "dripper": dripper,
+                "grinder": grinder,
+                "dose_g": dose,
+                "target_strength": request.target_strength
+            }
+            if evidence:
+                template_kwargs["evidence"] = evidence
+
+            prompt = active_template.render(**template_kwargs)
 
             for attempt in range(2):
                 try:
                     output = await self.llm_provider.generate_structured(
                         prompt=prompt,
                         response_schema=RecipeGenerationOutput,
-                        system_instruction="You are a champion barista crafting precision pour-over recipes. Follow exact arithmetic.",
+                        system_instruction="You are a champion barista crafting precision pour-over recipes. Follow exact arithmetic and ground every decision.",
                         model=self.model_name
                     )
                     valid, errors = RecipeValidator.validate(output)
@@ -225,8 +245,11 @@ class RecipeGenerator:
             explanation=generation_output.explanation,
             troubleshooting=generation_output.troubleshooting,
             limitations=generation_output.limitations,
-            confidence=0.88
+            confidence=0.92 if (evidence and evidence.match_outcome == "A") else 0.88
         )
+
+        # Verify and apply grounded provenance
+        recipe = ProvenanceVerifier.verify_and_ground(recipe, evidence)
 
         # Cache valid recipe (24 hours)
         if self.cache_provider:

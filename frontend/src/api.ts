@@ -1,4 +1,11 @@
-import type { CoffeeProfileDraft, EquipmentItem, PersonalisedRecipe, RecipeGenerateRequest } from './types';
+import type {
+  CoffeeProfileDraft,
+  EquipmentItem,
+  PersonalisedRecipe,
+  RecipeGenerateRequest,
+  EvidencePackage,
+  RecipeSearchRequest
+} from './types';
 
 const API_BASE = '/api/v1';
 
@@ -71,3 +78,17 @@ export async function getRecipe(recipeId: string): Promise<PersonalisedRecipe> {
   }
   return res.json();
 }
+
+export async function searchRecipes(request: RecipeSearchRequest): Promise<EvidencePackage> {
+  const res = await fetch(`${API_BASE}/recipes/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to search recipe knowledge base');
+  }
+  return res.json();
+}
+

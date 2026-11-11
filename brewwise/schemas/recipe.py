@@ -113,3 +113,9 @@ class RecipeGenerateRequest(BaseModel):
     grinder: Optional[str] = None
     dose_preference_g: Optional[float] = None
     target_strength: Optional[Literal["light", "balanced", "strong"]] = "balanced"
+
+
+class RecipeSearchRequest(BaseModel):
+    coffee_profile_id: str
+    dripper: Optional[str] = "Hario V60"
+

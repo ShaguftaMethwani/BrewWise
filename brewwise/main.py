@@ -26,7 +26,9 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         await seed_equipment()
-        logger.info("Database initialized and equipment catalogue seeded.")
+        from scripts.ingest_curated import seed_curated_knowledge_base
+        await seed_curated_knowledge_base()
+        logger.info("Database initialized, equipment catalogue and curated recipes seeded.")
     except Exception as e:
         logger.warning(f"Database initialization warning: {e}")
 

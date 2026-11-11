@@ -59,10 +59,25 @@ export interface TroubleshootingTip {
   adjustment: string;
 }
 
+export interface SourceReference {
+  source_name: string;
+  url?: string | null;
+  similarity_score?: number | null;
+}
+
+export interface Adaptation {
+  parameter: string;
+  original_value: string;
+  adapted_value: string;
+  rationale: string;
+}
+
 export interface PersonalisedRecipe {
   recipe_id: string;
   coffee_profile_id: string;
-  source_type: string;
+  source_type: 'exact_match' | 'adapted_from_related' | 'ai_generated' | 'curated_baseline' | string;
+  source_recipes?: SourceReference[];
+  adaptations?: Adaptation[];
   generation_model?: string | null;
   dripper: string;
   grinder?: string | null;
@@ -94,4 +109,39 @@ export interface RecipeGenerateRequest {
   grinder?: string;
   dose_preference_g?: number;
   target_strength?: 'light' | 'balanced' | 'strong';
+}
+
+export type MatchType = 'exact' | 'strong' | 'related' | 'analogous' | 'general';
+
+export interface ScoredMatch {
+  source_id: string;
+  url: string;
+  title: string;
+  author?: string | null;
+  site_name?: string | null;
+  match_type: MatchType;
+  relevance_score: number;
+  coffee_metadata: Record<string, any>;
+  extracted_recipe: Record<string, any>;
+  match_reasons: string[];
+}
+
+export interface ParameterConflict {
+  parameter: string;
+  difference: string;
+  sources_involved: string[];
+  resolution_guidance: string;
+}
+
+export interface EvidencePackage {
+  match_outcome: 'A' | 'B' | 'C';
+  matched_recipes: ScoredMatch[];
+  conflicts: ParameterConflict[];
+  coverage_summary: string;
+  compact_context: string;
+}
+
+export interface RecipeSearchRequest {
+  coffee_profile_id: string;
+  dripper?: string;
 }

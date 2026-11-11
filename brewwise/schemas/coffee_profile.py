@@ -20,19 +20,23 @@ class ExtractedField(BaseModel):
         return cls(value=compact.v, confidence=compact.c, source=src, raw_text=None)
 
 
+def _default_field() -> ExtractedField:
+    return ExtractedField(value=None, confidence=0.0, source="unknown")
+
+
 class CoffeeProfileDraft(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    brand: ExtractedField
-    product_name: ExtractedField
-    estate: ExtractedField
-    country: ExtractedField
-    region: ExtractedField
-    varietal: ExtractedField
-    process: ExtractedField
-    roast_level: ExtractedField
-    roast_date: ExtractedField
-    tasting_notes: ExtractedField
-    altitude: ExtractedField
+    brand: ExtractedField = Field(default_factory=_default_field)
+    product_name: ExtractedField = Field(default_factory=_default_field)
+    estate: ExtractedField = Field(default_factory=_default_field)
+    country: ExtractedField = Field(default_factory=_default_field)
+    region: ExtractedField = Field(default_factory=_default_field)
+    varietal: ExtractedField = Field(default_factory=_default_field)
+    process: ExtractedField = Field(default_factory=_default_field)
+    roast_level: ExtractedField = Field(default_factory=_default_field)
+    roast_date: ExtractedField = Field(default_factory=_default_field)
+    tasting_notes: ExtractedField = Field(default_factory=_default_field)
+    altitude: ExtractedField = Field(default_factory=_default_field)
     dose_recommendation: Optional[ExtractedField] = None
     additional_info: List[ExtractedField] = Field(default_factory=list)
     image_id: Optional[str] = None

@@ -13,10 +13,13 @@ import {
   ArrowLeft,
   Coffee,
   RefreshCw,
+  ExternalLink,
+  BookOpen,
 } from 'lucide-react';
-import { getRecipe } from '../api';
-import type { PersonalisedRecipe } from '../types';
+import { getRecipe, searchRecipes } from '../api';
+import type { PersonalisedRecipe, EvidencePackage } from '../types';
 import { BrewTimer } from '../components/BrewTimer';
+import { EvidencePanel } from '../components/EvidencePanel';
 
 export const RecipeView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,11 +27,14 @@ export const RecipeView: React.FC = () => {
   const navigate = useNavigate();
 
   const [recipe, setRecipe] = useState<PersonalisedRecipe | null>(location.state?.recipe || null);
+  const [evidence, setEvidence] = useState<EvidencePackage | null>(null);
   const [loading, setLoading] = useState(!recipe);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [showTroubleshooting, setShowTroubleshooting] = useState(true);
   const [showRationale, setShowRationale] = useState(true);
+  const [showAdaptations, setShowAdaptations] = useState(true);
 
   useEffect(() => {
     async function fetchRecipe() {
@@ -45,6 +51,27 @@ export const RecipeView: React.FC = () => {
     }
     fetchRecipe();
   }, [id, recipe]);
+
+  // Fetch retrieval evidence for this coffee
+  useEffect(() => {
+    async function loadEvidence() {
+      if (recipe && recipe.coffee_profile_id) {
+        setEvidenceLoading(true);
+        try {
+          const ev = await searchRecipes({
+            coffee_profile_id: recipe.coffee_profile_id,
+            dripper: recipe.dripper,
+          });
+          setEvidence(ev);
+        } catch (e) {
+          console.warn('Could not load evidence package:', e);
+        } finally {
+          setEvidenceLoading(false);
+        }
+      }
+    }
+    loadEvidence();
+  }, [recipe?.coffee_profile_id, recipe?.dripper]);
 
   if (loading) {
     return (
@@ -72,6 +99,42 @@ export const RecipeView: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getSourceBadge = () => {
+    switch (recipe.source_type) {
+      case 'exact_match':
+        return {
+          label: 'Exact Source Match',
+          bg: 'rgba(16, 185, 129, 0.15)',
+          color: '#10b981',
+          border: 'rgba(16, 185, 129, 0.3)',
+        };
+      case 'adapted_from_related':
+        return {
+          label: 'Adapted from Related Coffee',
+          bg: 'rgba(139, 92, 246, 0.15)',
+          color: '#a78bfa',
+          border: 'rgba(139, 92, 246, 0.3)',
+        };
+      case 'curated_baseline':
+        return {
+          label: 'Curated Expert Baseline',
+          bg: 'rgba(59, 130, 246, 0.15)',
+          color: '#3b82f6',
+          border: 'rgba(59, 130, 246, 0.3)',
+        };
+      case 'ai_generated':
+      default:
+        return {
+          label: 'AI Synthesized (Brewing Physics)',
+          bg: 'rgba(245, 158, 11, 0.15)',
+          color: '#f59e0b',
+          border: 'rgba(245, 158, 11, 0.3)',
+        };
+    }
+  };
+
+  const badge = getSourceBadge();
+
   return (
     <div style={{ maxWidth: '880px', margin: '0 auto', padding: '30px 20px 80px' }} className="animate-fade-in">
       <div style={{ marginBottom: '20px' }}>
@@ -84,6 +147,8 @@ export const RecipeView: React.FC = () => {
             alignItems: 'center',
             gap: '6px',
             fontSize: '0.9rem',
+            border: 'none',
+            cursor: 'pointer',
           }}
         >
           <ArrowLeft size={16} />
@@ -91,7 +156,8 @@ export const RecipeView: React.FC = () => {
         </button>
       </div>
 
-      <div className="glass-panel" style={{ padding: '32px', marginBottom: '28px', position: 'relative', overflow: 'hidden' }}>
+      {/* Main Recipe Header Card */}
+      <div className="glass-panel" style={{ padding: '32px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute',
           top: '-40px',
@@ -105,7 +171,7 @@ export const RecipeView: React.FC = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
               <span style={{
                 fontSize: '0.75rem',
                 textTransform: 'uppercase',
@@ -117,6 +183,17 @@ export const RecipeView: React.FC = () => {
                 borderRadius: '4px',
               }}>
                 {recipe.dripper}
+              </span>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '3px 8px',
+                borderRadius: '4px',
+                backgroundColor: badge.bg,
+                color: badge.color,
+                border: `1px solid ${badge.border}`,
+              }}>
+                {badge.label}
               </span>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 {recipe.grinder || 'Universal Setting'}
@@ -147,6 +224,7 @@ export const RecipeView: React.FC = () => {
           </div>
         </div>
 
+        {/* Recipe Key Metrics */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
@@ -215,6 +293,42 @@ export const RecipeView: React.FC = () => {
         </div>
       </div>
 
+      {/* RAG Evidence Panel */}
+      <EvidencePanel evidence={evidence} loading={evidenceLoading} />
+
+      {/* Adaptations Section if present */}
+      {recipe.adaptations && recipe.adaptations.length > 0 && (
+        <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div
+            onClick={() => setShowAdaptations(!showAdaptations)}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Compass size={18} color="var(--accent-gold)" />
+              Barista Equipment & Parameter Adaptations ({recipe.adaptations.length})
+            </h3>
+            {showAdaptations ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
+
+          {showAdaptations && (
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)', display: 'grid', gap: '10px' }}>
+              {recipe.adaptations.map((a, i) => (
+                <div key={i} style={{ background: 'var(--bg-elevated)', padding: '12px 14px', borderRadius: '8px', fontSize: '0.88rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <strong style={{ color: 'var(--accent-crema)' }}>{a.parameter}</strong>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      {a.original_value} → <span style={{ color: '#10b981' }}>{a.adapted_value}</span>
+                    </span>
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.84rem' }}>{a.rationale}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Interactive Brew Timer */}
       <div style={{ marginBottom: '28px' }}>
         <BrewTimer
           pourSchedule={recipe.pour_schedule}
@@ -222,6 +336,7 @@ export const RecipeView: React.FC = () => {
         />
       </div>
 
+      {/* Pour Schedule Table */}
       <div className="glass-panel" style={{ padding: '28px', marginBottom: '28px' }}>
         <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>
           Pour Schedule Breakdown
@@ -260,6 +375,7 @@ export const RecipeView: React.FC = () => {
         </div>
       </div>
 
+      {/* Step by Step Instructions */}
       <div className="glass-panel" style={{ padding: '28px', marginBottom: '28px' }}>
         <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>
           Step-by-Step Instructions
@@ -273,6 +389,7 @@ export const RecipeView: React.FC = () => {
         </ol>
       </div>
 
+      {/* Reasoning and Rationale */}
       {recipe.explanation && (
         <div className="glass-panel" style={{ padding: '24px', marginBottom: '28px' }}>
           <div
@@ -304,6 +421,41 @@ export const RecipeView: React.FC = () => {
         </div>
       )}
 
+      {/* Verified Provenance & Sources Section */}
+      {recipe.source_recipes && recipe.source_recipes.length > 0 && (
+        <div className="glass-panel" style={{ padding: '24px', marginBottom: '28px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <BookOpen size={18} color="#3b82f6" />
+            Verified Source Provenance
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {recipe.source_recipes.map((src, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-elevated)', padding: '10px 14px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{src.source_name}</span>
+                {src.url && (
+                  <a
+                    href={src.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      color: 'var(--accent-gold)',
+                      fontSize: '0.82rem',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    View Original <ExternalLink size={13} />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Troubleshooting Guide */}
       {recipe.troubleshooting && recipe.troubleshooting.length > 0 && (
         <div className="glass-panel" style={{ padding: '24px', marginBottom: '40px' }}>
           <div
@@ -348,6 +500,7 @@ export const RecipeView: React.FC = () => {
             border: '1px solid var(--border-subtle)',
             color: 'var(--text-primary)',
             fontWeight: 600,
+            textDecoration: 'none',
           }}
         >
           Scan Another Coffee Bag

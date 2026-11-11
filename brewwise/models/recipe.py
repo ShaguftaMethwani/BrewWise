@@ -33,6 +33,8 @@ class RecipeModel(Base):
     explanation = Column(JSON, nullable=True)
     troubleshooting = Column(JSON, nullable=True)
     limitations = Column(JSON, nullable=True)
+    source_recipes = Column(JSON, nullable=True)
+    adaptations = Column(JSON, nullable=True)
 
     confidence = Column(Float, default=0.85)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

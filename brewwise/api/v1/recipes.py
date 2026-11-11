@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -11,12 +11,19 @@ from brewwise.schemas.coffee_profile import CoffeeProfileDraft, ExtractedField, 
 from brewwise.schemas.recipe import (
     PersonalisedRecipe,
     RecipeGenerateRequest,
+    RecipeSearchRequest,
     PourStep,
     RecipeExplanation,
     TroubleshootingTip,
+    SourceReference,
+    Adaptation,
 )
-from brewwise.dependencies import get_recipe_generator
+from brewwise.dependencies import get_recipe_generator, get_hybrid_retriever
 from brewwise.services.synthesis.recipe_generator import RecipeGenerator
+from brewwise.services.retrieval.hybrid_retriever import HybridRetriever
+from brewwise.services.retrieval.query_builder import QueryBuilder
+from brewwise.services.retrieval.relevance import MatchClassifier
+from brewwise.services.retrieval.evidence_evaluator import EvidenceEvaluator, EvidencePackage
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Recipes & Profiles"])
@@ -80,17 +87,67 @@ async def update_coffee_profile(
     return await get_coffee_profile(profile_id, db)
 
 
+@router.post("/recipes/search", response_model=EvidencePackage)
+async def search_recipes(
+    request: RecipeSearchRequest,
+    retriever: HybridRetriever = Depends(get_hybrid_retriever),
+    db: AsyncSession = Depends(get_db)
+):
+    """Executes query building -> hybrid retrieval -> match classification -> deterministic evidence evaluation."""
+    profile_draft = await get_coffee_profile(request.coffee_profile_id, db)
+
+    # 1. Query construction
+    queries = QueryBuilder.build_queries(profile_draft, dripper=request.dripper)
+
+    # 2. Hybrid search with RRF
+    candidates = await retriever.search(queries, db, top_k=20)
+
+    # 3. Match classification & scoring
+    scored_matches = []
+    for source, base_score in candidates:
+        match = MatchClassifier.score_and_classify(
+            source=source,
+            profile=profile_draft,
+            target_dripper=request.dripper,
+            base_retrieval_score=base_score
+        )
+        if match:
+            scored_matches.append(match)
+
+    # 4. Evidence evaluation
+    evidence = EvidenceEvaluator.evaluate(scored_matches)
+    return evidence
+
+
 @router.post("/recipes/generate", response_model=PersonalisedRecipe)
 async def generate_recipe(
     request: RecipeGenerateRequest,
     generator: RecipeGenerator = Depends(get_recipe_generator),
+    retriever: HybridRetriever = Depends(get_hybrid_retriever),
     db: AsyncSession = Depends(get_db)
 ):
     # Fetch profile
     profile_draft = await get_coffee_profile(request.coffee_profile_id, db)
 
-    # Generate recipe
-    recipe = await generator.generate(profile_draft, request)
+    # Run hybrid retrieval & evidence evaluation
+    queries = QueryBuilder.build_queries(profile_draft, dripper=request.dripper)
+    candidates = await retriever.search(queries, db, top_k=20)
+
+    scored_matches = []
+    for source, base_score in candidates:
+        match = MatchClassifier.score_and_classify(
+            source=source,
+            profile=profile_draft,
+            target_dripper=request.dripper,
+            base_retrieval_score=base_score
+        )
+        if match:
+            scored_matches.append(match)
+
+    evidence_pkg = EvidenceEvaluator.evaluate(scored_matches)
+
+    # Grounded recipe generation (single call)
+    recipe = await generator.generate(profile_draft, request, evidence=evidence_pkg)
 
     # Save to db
     db_recipe = RecipeModel(
@@ -117,6 +174,8 @@ async def generate_recipe(
         explanation=recipe.explanation.model_dump(mode="json"),
         troubleshooting=[t.model_dump(mode="json") for t in recipe.troubleshooting],
         limitations=recipe.limitations,
+        source_recipes=[s.model_dump(mode="json") for s in recipe.source_recipes],
+        adaptations=[a.model_dump(mode="json") for a in recipe.adaptations],
         confidence=recipe.confidence
     )
     db.add(db_recipe)
@@ -135,6 +194,8 @@ async def get_recipe(recipe_id: str, db: AsyncSession = Depends(get_db)):
     pour_steps = [PourStep(**p) for p in item.pour_schedule]
     explanation = RecipeExplanation(**(item.explanation or {"reasoning_summary": ""}))
     troubleshooting = [TroubleshootingTip(**t) for t in (item.troubleshooting or [])]
+    source_recipes = [SourceReference(**s) for s in (item.source_recipes or [])]
+    adaptations = [Adaptation(**a) for a in (item.adaptations or [])]
 
     return PersonalisedRecipe(
         recipe_id=item.id,
@@ -159,6 +220,8 @@ async def get_recipe(recipe_id: str, db: AsyncSession = Depends(get_db)):
         expected_flavour=item.expected_flavour or "",
         explanation=explanation,
         troubleshooting=troubleshooting,
+        source_recipes=source_recipes,
+        adaptations=adaptations,
         limitations=item.limitations or [],
         confidence=item.confidence,
         created_at=item.created_at

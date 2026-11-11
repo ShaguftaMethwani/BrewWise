@@ -55,6 +55,11 @@ def get_coffee_extractor() -> CoffeeBagExtractor:
     )
 
 
+from brewwise.providers.embeddings.base import EmbeddingProvider
+from brewwise.providers.embeddings.gemini_embed import GeminiEmbeddingProvider
+from brewwise.services.retrieval.hybrid_retriever import HybridRetriever
+
+
 def get_recipe_generator() -> RecipeGenerator:
     llm_prov = get_llm_provider()
     cache_prov = get_cache_provider()
@@ -63,3 +68,16 @@ def get_recipe_generator() -> RecipeGenerator:
         cache_provider=cache_prov,
         model_name=settings.LLM_MODEL
     )
+
+
+@lru_cache()
+def get_embedding_provider() -> EmbeddingProvider:
+    return GeminiEmbeddingProvider(
+        api_key=settings.GOOGLE_API_KEY,
+        model=settings.EMBEDDING_MODEL
+    )
+
+
+def get_hybrid_retriever() -> HybridRetriever:
+    return HybridRetriever(embedding_provider=get_embedding_provider())
+
