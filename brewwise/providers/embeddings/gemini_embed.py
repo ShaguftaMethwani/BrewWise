@@ -34,7 +34,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "text-embedding-004",
+        model: str = "gemini-embedding-001",
         dimension: int = 768
     ):
         self.api_key = api_key
@@ -45,9 +45,55 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         if api_key:
             try:
                 from google import genai
-                self.client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
+                # Uses standard v1 API by default for embeddings
+                self.client = genai.Client(api_key=api_key)
             except Exception as e:
                 logger.warning(f"Could not initialize google-genai Client for embeddings: {e}")
+
+    def _normalize_vec(self, values: List[float]) -> List[float]:
+        """Ensures vector is exactly self.dimension and L2 normalized."""
+        if len(values) > self.dimension:
+            values = values[:self.dimension]
+        elif len(values) < self.dimension:
+            values = values + [0.0] * (self.dimension - len(values))
+        norm = math.sqrt(sum(x * x for x in values))
+        if norm > 0:
+            values = [round(x / norm, 6) for x in values]
+        return values
+
+    def _embed_sync(self, contents):
+        """Attempts embedding with self.model, falling back to alternative active models if 404."""
+        models = [self.model]
+        if self.model != "gemini-embedding-001":
+            models.append("gemini-embedding-001")
+        if "text-embedding-004" not in models:
+            models.append("text-embedding-004")
+
+        last_err = None
+        for m in models:
+            try:
+                try:
+                    res = self.client.models.embed_content(
+                        model=m,
+                        contents=contents,
+                        config={"output_dimensionality": self.dimension}
+                    )
+                except Exception:
+                    res = self.client.models.embed_content(
+                        model=m,
+                        contents=contents,
+                    )
+                if m != self.model:
+                    logger.info(f"Gemini embedding model automatically switched from {self.model} to {m}")
+                    self.model = m
+                return res
+            except Exception as e:
+                last_err = e
+                err_msg = str(e)
+                if "404" in err_msg or "NOT_FOUND" in err_msg or "not found" in err_msg:
+                    continue
+                raise e
+        raise last_err
 
     async def embed_query(self, text: str) -> List[float]:
         if not text:
@@ -60,16 +106,12 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                 loop = asyncio.get_running_loop()
                 response = await loop.run_in_executor(
                     None,
-                    lambda: self.client.models.embed_content(
-                        model=self.model,
-                        contents=text,
-                    )
+                    lambda: self._embed_sync(text)
                 )
                 if response and hasattr(response, "embedding") and response.embedding:
-                    values = response.embedding.values
-                    return list(values)[:self.dimension]
+                    return self._normalize_vec(list(response.embedding.values))
                 elif response and hasattr(response, "embeddings") and response.embeddings:
-                    return list(response.embeddings[0].values)[:self.dimension]
+                    return self._normalize_vec(list(response.embeddings[0].values))
             except Exception as e:
                 logger.warning(f"Gemini API embed_content failed, falling back to deterministic: {e}")
 
@@ -85,13 +127,10 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                 loop = asyncio.get_running_loop()
                 response = await loop.run_in_executor(
                     None,
-                    lambda: self.client.models.embed_content(
-                        model=self.model,
-                        contents=texts,
-                    )
+                    lambda: self._embed_sync(texts)
                 )
                 if response and hasattr(response, "embeddings") and response.embeddings:
-                    return [list(emb.values)[:self.dimension] for emb in response.embeddings]
+                    return [self._normalize_vec(list(emb.values)) for emb in response.embeddings]
             except Exception as e:
                 logger.warning(f"Gemini API embed_documents failed, falling back to deterministic: {e}")
 

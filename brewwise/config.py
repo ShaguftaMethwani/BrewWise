@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = Field(default="gemini", description="LLM synthesis provider")
     LLM_MODEL: str = Field(default="gemini-2.5-flash", description="LLM model identifier")
     EMBEDDING_PROVIDER: str = Field(default="gemini", description="Embeddings provider")
-    EMBEDDING_MODEL: str = Field(default="text-embedding-004", description="Embedding model name")
+    EMBEDDING_MODEL: str = Field(default="gemini-embedding-001", description="Embedding model name")
     GOOGLE_API_KEY: Optional[str] = Field(default=None, description="Google Gemini API key")
 
     # Search & Discovery

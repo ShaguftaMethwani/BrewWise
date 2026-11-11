@@ -613,3 +613,33 @@ The application must demonstrate a complete end-to-end workflow and must not rel
 BrewWise should behave like a knowledgeable specialty coffee companion: it reads the bag, researches what other brewers have tried, understands the user's equipment, and recommends a practical recipe with evidence and reasoning.
 
 Its defining feature is not simply generating a plausible coffee recipe. It is **connecting the identity of a specific coffee to real brewing knowledge, adapting that knowledge to the user's setup, and being transparent when the evidence is insufficient**.
+
+
+### Mandatory Requirement: Live Web Discovery for Every Coffee Scan
+
+The application must implement a dedicated online discovery and ingestion pipeline that searches the live web for existing brewing recipes whenever a user scans a coffee bag. Searching only a pre-populated vector database is not sufficient.
+
+The pipeline must:
+
+1. Build search queries from the extracted coffee metadata, prioritising the exact coffee name, roaster, estate, processing method, and relevant brewing terminology.
+2. Search publicly accessible online sources using a configurable web search API or other permitted discovery mechanism.
+3. Identify potentially relevant recipe pages, community discussions, blogs, and brewing guides.
+4. Fetch accessible pages where permitted, extract their content, and identify actual pour-over recipes and their parameters.
+5. Verify that each result contains useful brewing information and assess whether it refers to the exact coffee or a related coffee.
+6. Normalise extracted recipes into a structured schema, preserving source URLs, titles, authors where available, retrieval timestamps, and provenance.
+7. Deduplicate results and evaluate recipe completeness and relevance before using them.
+8. Feed the newly discovered, validated recipes into the RAG retrieval and recommendation pipeline for the current request.
+9. Optionally persist useful, permitted content in the knowledge base for future searches, subject to source access restrictions and applicable terms.
+10. If live search fails, report that limitation and fall back to the existing knowledge base and a clearly labelled AI-generated recipe.
+
+**Important implementation constraints:**
+- Live discovery must run as part of the normal coffee-scanning workflow, not only as a manual administrative ingestion task.
+- Do not assume that the LLM itself has internet access. Implement an explicit search integration and page-fetching mechanism.
+- Do not treat search snippets as complete recipes. Fetch and inspect the underlying page when access is permitted.
+- Do not fabricate recipes, URLs, authors, or claims that a recipe was found online.
+- Preserve source attribution and distinguish exact matches from recipes for similar coffees.
+- Use configurable timeouts, retry limits, rate limits, and caching to control latency and API costs.
+- If a source blocks automated access, requires authentication, or prohibits extraction, respect those restrictions and use accessible alternatives.
+- Make it possible to configure the search provider through environment variables without hardcoding API keys.
+
+**Acceptance criterion:** Given a newly scanned coffee that has not been pre-indexed, the application must attempt a live web search using its extracted metadata, process accessible results, and use any relevant discovered recipes in its recommendation. If no relevant recipes are found, it must explicitly distinguish that outcome from a search failure and generate a fallback recipe.

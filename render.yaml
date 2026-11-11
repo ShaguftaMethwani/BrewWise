@@ -25,6 +25,8 @@ services:
         value: "10"
       - key: LOG_LEVEL
         value: INFO
+      - key: EMBEDDING_MODEL
+        value: gemini-embedding-001
 
   # -------------------------------------------------------------
   # Frontend: React + Vite Single Page App
