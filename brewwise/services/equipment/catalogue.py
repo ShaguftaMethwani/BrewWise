@@ -78,6 +78,34 @@ SEED_GRINDERS = [
         description="Standard entry electric burr grinder. Recommended setting: 14 - 18."
     ),
     EquipmentItem(
+        id="1zpresso-j-max",
+        category="grinder",
+        brand="1Zpresso",
+        model="J-Max / J-Ultra",
+        description="Fine external adjustment (8.4 microns/click). Recommended pour-over setting: 2.8.0 - 3.6.0 (approx 250-320 clicks)."
+    ),
+    EquipmentItem(
+        id="1zpresso-zp6",
+        category="grinder",
+        brand="1Zpresso",
+        model="ZP6 Special",
+        description="Dedicated pour-over specialist hand grinder producing exceptionally high clarity. Range: 3.5 - 5.5."
+    ),
+    EquipmentItem(
+        id="1zpresso-k-ultra",
+        category="grinder",
+        brand="1Zpresso",
+        model="K-Ultra / K-Max",
+        description="Versatile heptagonal burr grinder with external collar adjustment. Range: 6.0 - 8.0."
+    ),
+    EquipmentItem(
+        id="kingrinder-k6",
+        category="grinder",
+        brand="Kingrinder",
+        model="K6",
+        description="High-value 48mm heptagonal burr hand grinder. Recommended pour-over: 80 - 105 clicks."
+    ),
+    EquipmentItem(
         id="fellow-ode-gen2",
         category="grinder",
         brand="Fellow",
