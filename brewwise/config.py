@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     # Security & Auth
     SECRET_KEY: str = Field(default="brewwise-insecure-secret-key-change-in-prod-xyz", description="JWT secret key")
     JWT_EXPIRATION_HOURS: int = Field(default=72, description="JWT token validity in hours")
-    CORS_ORIGINS: List[str] = Field(
+    CORS_ORIGINS: Union[List[str], str] = Field(
         default=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"],
         description="Allowed CORS origins"
     )
