@@ -1,0 +1,18 @@
+{
+  "short_name": "BrewWise",
+  "name": "BrewWise — Intelligent Pour-Over Coffee Guide",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f0d0c",
+  "theme_color": "#d97706",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "description": "AI-powered pour-over coffee dial-in assistant and interactive brew timer."
+}

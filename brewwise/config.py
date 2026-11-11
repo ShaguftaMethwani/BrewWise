@@ -44,7 +44,9 @@ class Settings(BaseSettings):
     LIVE_DISCOVERY_RATE_LIMIT: int = Field(default=10, description="Max queries per minute")
     LIVE_DISCOVERY_MAX_URLS: int = Field(default=5, description="Max URLs to fetch per scan")
 
-    # Security & Limits
+    # Security & Auth
+    SECRET_KEY: str = Field(default="brewwise-insecure-secret-key-change-in-prod-xyz", description="JWT secret key")
+    JWT_EXPIRATION_HOURS: int = Field(default=72, description="JWT token validity in hours")
     CORS_ORIGINS: List[str] = Field(
         default=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"],
         description="Allowed CORS origins"

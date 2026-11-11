@@ -20,6 +20,7 @@ import { getRecipe, searchRecipes } from '../api';
 import type { PersonalisedRecipe, EvidencePackage } from '../types';
 import { BrewTimer } from '../components/BrewTimer';
 import { EvidencePanel } from '../components/EvidencePanel';
+import { FeedbackForm } from '../components/FeedbackForm';
 
 export const RecipeView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -334,6 +335,11 @@ export const RecipeView: React.FC = () => {
           pourSchedule={recipe.pour_schedule}
           targetBrewTimeSeconds={recipe.target_brew_time_seconds}
         />
+      </div>
+
+      {/* Sensory Feedback & Dial-In Barista Diagnosis */}
+      <div style={{ marginBottom: '28px' }}>
+        <FeedbackForm recipe={recipe} />
       </div>
 
       {/* Pour Schedule Table */}

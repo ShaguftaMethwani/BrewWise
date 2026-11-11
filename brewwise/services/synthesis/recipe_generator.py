@@ -221,6 +221,12 @@ class RecipeGenerator:
                 dose_g=dose
             )
 
+        from brewwise.services.equipment.grinder_guide import map_grind_setting
+
+        resolved_grind_setting = generation_output.grind_setting
+        if grinder and not resolved_grind_setting:
+            resolved_grind_setting = map_grind_setting(grinder, generation_output.grind_description)
+
         # Assemble full PersonalisedRecipe
         recipe = PersonalisedRecipe(
             coffee_profile_id=coffee.id,
@@ -234,7 +240,7 @@ class RecipeGenerator:
             ratio=generation_output.ratio,
             water_temperature_c=generation_output.water_temperature_c,
             grind_description=generation_output.grind_description,
-            grind_setting=generation_output.grind_setting,
+            grind_setting=resolved_grind_setting,
             filter_prep=generation_output.filter_prep,
             bloom_water_g=generation_output.bloom_water_g,
             bloom_time_seconds=generation_output.bloom_time_seconds,

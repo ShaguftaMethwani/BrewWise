@@ -73,6 +73,7 @@ export interface Adaptation {
 }
 
 export interface PersonalisedRecipe {
+  id?: string;
   recipe_id: string;
   coffee_profile_id: string;
   source_type: 'exact_match' | 'adapted_from_related' | 'ai_generated' | 'curated_baseline' | string;
@@ -149,4 +150,98 @@ export interface EvidencePackage {
 export interface RecipeSearchRequest {
   coffee_profile_id: string;
   dripper?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  display_name: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+export interface UserEquipmentProfile {
+  id: string;
+  name: string;
+  dripper: string;
+  grinder?: string | null;
+  filter_type?: string | null;
+  default_dose_g: number;
+  default_ratio: string;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface UserEquipmentProfileCreate {
+  name: string;
+  dripper: string;
+  grinder?: string | null;
+  filter_type?: string | null;
+  default_dose_g?: number;
+  default_ratio?: string;
+  is_default?: boolean;
+}
+
+export interface AdjustmentRecommendation {
+  diagnosis: string;
+  primary_adjustment: string;
+  secondary_adjustment?: string | null;
+  suggested_parameters: Record<string, any>;
+  rationale: string;
+}
+
+export interface BrewLog {
+  id: string;
+  user_id?: string | null;
+  recipe_id?: string | null;
+  coffee_profile_id?: string | null;
+  brewed_at: string;
+  dripper: string;
+  grinder?: string | null;
+  actual_dose_g: number;
+  actual_water_g: number;
+  actual_grind_setting?: string | null;
+  actual_temp_c: number;
+  actual_brew_time_seconds: number;
+  sourness: number;
+  bitterness: number;
+  sweetness: number;
+  body: number;
+  overall_satisfaction: number;
+  drawdown_speed: 'fast' | 'normal' | 'slow' | 'stalled';
+  flavour_notes?: string | null;
+  adjustments?: AdjustmentRecommendation | null;
+  created_at: string;
+}
+
+export interface BrewLogCreate {
+  recipe_id?: string | null;
+  coffee_profile_id?: string | null;
+  dripper: string;
+  grinder?: string | null;
+  actual_dose_g: number;
+  actual_water_g: number;
+  actual_grind_setting?: string | null;
+  actual_temp_c: number;
+  actual_brew_time_seconds: number;
+  sourness: number;
+  bitterness: number;
+  sweetness: number;
+  body: number;
+  overall_satisfaction: number;
+  drawdown_speed: 'fast' | 'normal' | 'slow' | 'stalled';
+  flavour_notes?: string | null;
+}
+
+export interface BrewLogFeedbackUpdate {
+  sourness?: number;
+  bitterness?: number;
+  sweetness?: number;
+  body?: number;
+  overall_satisfaction?: number;
+  drawdown_speed?: 'fast' | 'normal' | 'slow' | 'stalled';
+  flavour_notes?: string;
 }
