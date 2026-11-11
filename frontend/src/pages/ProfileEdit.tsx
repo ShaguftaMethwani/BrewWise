@@ -20,6 +20,8 @@ export const ProfileEdit: React.FC = () => {
 
   const [selectedDripper, setSelectedDripper] = useState<string>('Hario V60 (02)');
   const [selectedGrinder, setSelectedGrinder] = useState<string>('');
+  const [isCustomGrinder, setIsCustomGrinder] = useState<boolean>(false);
+  const [customGrinder, setCustomGrinder] = useState<string>('');
   const [dose, setDose] = useState<number>(15);
   const [strength, setStrength] = useState<'light' | 'balanced' | 'strong'>('balanced');
 
@@ -82,10 +84,12 @@ export const ProfileEdit: React.FC = () => {
     try {
       await updateProfile(draft.id, formData);
 
+      const finalGrinder = isCustomGrinder ? customGrinder.trim() : selectedGrinder;
+
       const recipe = await generateRecipe({
         coffee_profile_id: draft.id,
         dripper: selectedDripper,
-        grinder: selectedGrinder || undefined,
+        grinder: finalGrinder || undefined,
         dose_preference_g: dose,
         target_strength: strength,
       });
@@ -286,21 +290,65 @@ export const ProfileEdit: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              GRINDER (OPTIONAL)
-            </label>
-            <select
-              value={selectedGrinder}
-              onChange={(e) => setSelectedGrinder(e.target.value)}
-              style={{ width: '100%' }}
-            >
-              <option value="">Standard Hand/Electric Grinder</option>
-              {grinders.map((g) => (
-                <option key={g.id} value={`${g.brand} ${g.model}`}>
-                  {g.brand} {g.model}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                GRINDER (OPTIONAL)
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomGrinder(!isCustomGrinder);
+                  if (!isCustomGrinder && !customGrinder) {
+                    setCustomGrinder(selectedGrinder);
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--pastel-sky-text)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline'
+                }}
+              >
+                {isCustomGrinder ? '← Choose from dropdown' : '+ Type other grinder'}
+              </button>
+            </div>
+
+            {isCustomGrinder ? (
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Type your grinder (e.g. Kingrinder K6, 1Zpresso K-Ultra, Ode Gen 2)..."
+                  value={customGrinder}
+                  onChange={(e) => setCustomGrinder(e.target.value)}
+                  style={{ width: '100%', paddingRight: '30px' }}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <select
+                value={selectedGrinder}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustomGrinder(true);
+                  } else {
+                    setSelectedGrinder(e.target.value);
+                  }
+                }}
+                style={{ width: '100%' }}
+              >
+                <option value="">Standard Hand/Electric Grinder</option>
+                {grinders.map((g) => (
+                  <option key={g.id} value={`${g.brand} ${g.model}`}>
+                    {g.brand} {g.model}
+                  </option>
+                ))}
+                <option value="__custom__">✏️ Other / Custom Grinder (Type name)...</option>
+              </select>
+            )}
           </div>
 
           <div>

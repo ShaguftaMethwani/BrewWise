@@ -66,6 +66,8 @@ export const Settings: React.FC = () => {
   const [profileName, setProfileName] = useState('');
   const [selectedDripper, setSelectedDripper] = useState(DRIPPER_OPTIONS[0]);
   const [selectedGrinder, setSelectedGrinder] = useState(GRINDER_OPTIONS[0]);
+  const [isCustomGrinder, setIsCustomGrinder] = useState(false);
+  const [customGrinder, setCustomGrinder] = useState('');
   const [filterType, setFilterType] = useState('Tabbed Paper');
   const [defaultDose, setDefaultDose] = useState(15.0);
   const [defaultRatio, setDefaultRatio] = useState('1:16.67');
@@ -133,10 +135,11 @@ export const Settings: React.FC = () => {
     if (!profileName.trim()) return;
 
     try {
+      const finalGrinder = (isCustomGrinder ? customGrinder.trim() : selectedGrinder) || 'Standard Grinder';
       const payload: UserEquipmentProfileCreate = {
         name: profileName.trim(),
         dripper: selectedDripper,
-        grinder: selectedGrinder,
+        grinder: finalGrinder,
         filter_type: filterType,
         default_dose_g: defaultDose,
         default_ratio: defaultRatio,
@@ -477,24 +480,74 @@ export const Settings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#a8a29e', marginBottom: '4px' }}>
-                      Grinder Model
-                    </label>
-                    <select
-                      value={selectedGrinder}
-                      onChange={(e) => setSelectedGrinder(e.target.value)}
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        background: 'rgba(0, 0, 0, 0.5)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        borderRadius: '6px',
-                        padding: '8px 10px',
-                        color: '#fafaf9'
-                      }}
-                    >
-                      {GRINDER_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '0.8rem', color: '#a8a29e' }}>
+                        Grinder Model
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomGrinder(!isCustomGrinder);
+                          if (!isCustomGrinder && !customGrinder) {
+                            setCustomGrinder(selectedGrinder);
+                          }
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#38bdf8',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: 0,
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        {isCustomGrinder ? '← Pick from list' : '+ Type other grinder'}
+                      </button>
+                    </div>
+
+                    {isCustomGrinder ? (
+                      <input
+                        type="text"
+                        placeholder="e.g. Kingrinder K6, 1Zpresso K-Ultra, Ode Gen 2"
+                        value={customGrinder}
+                        onChange={(e) => setCustomGrinder(e.target.value)}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '8px 10px',
+                          color: '#fafaf9'
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <select
+                        value={selectedGrinder}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') {
+                            setIsCustomGrinder(true);
+                          } else {
+                            setSelectedGrinder(e.target.value);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '8px 10px',
+                          color: '#fafaf9'
+                        }}
+                      >
+                        {GRINDER_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                        <option value="__custom__">✏️ Other / Custom Grinder (Type name)...</option>
+                      </select>
+                    )}
                   </div>
 
                   <div>
