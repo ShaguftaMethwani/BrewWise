@@ -15,7 +15,7 @@ class GeminiVisionProvider(VisionProvider):
     def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.5-flash"):
         self.api_key = api_key
         self.model = model
-        self.client = genai.Client(api_key=api_key) if api_key else None
+        self.client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'}) if api_key else None
 
         prompt_path = Path(__file__).parent.parent.parent / "prompts" / "v1" / "extract_coffee.j2"
         if prompt_path.exists():

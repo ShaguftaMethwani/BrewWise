@@ -15,7 +15,7 @@ class GeminiLLMProvider(LLMProvider):
     def __init__(self, api_key: Optional[str] = None, default_model: str = "gemini-2.5-flash"):
         self.api_key = api_key
         self.default_model = default_model
-        self.client = genai.Client(api_key=api_key) if api_key else None
+        self.client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'}) if api_key else None
 
     async def generate_text(
         self,

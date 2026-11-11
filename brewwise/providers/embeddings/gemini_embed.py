@@ -45,7 +45,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         if api_key:
             try:
                 from google import genai
-                self.client = genai.Client(api_key=api_key)
+                self.client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
             except Exception as e:
                 logger.warning(f"Could not initialize google-genai Client for embeddings: {e}")
 
