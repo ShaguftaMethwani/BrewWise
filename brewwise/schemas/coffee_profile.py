@@ -9,11 +9,11 @@ from brewwise.schemas.scan import ExtractedFieldCompact, CoffeeProfileDraftCompa
 class ExtractedField(BaseModel):
     value: Optional[str] = None
     confidence: float = 0.0
-    source: Literal["bag_text", "inferred", "unknown"] = "bag_text"
+    source: Literal["bag_text", "inferred", "user_override", "unknown"] = "bag_text"
     raw_text: Optional[str] = None
 
     @classmethod
-    def from_compact(cls, compact: Optional[ExtractedFieldCompact], source: Literal["bag_text", "inferred", "unknown"] = "bag_text") -> "ExtractedField":
+    def from_compact(cls, compact: Optional[ExtractedFieldCompact], source: Literal["bag_text", "inferred", "user_override", "unknown"] = "bag_text") -> "ExtractedField":
         if compact is None:
             return cls(value=None, confidence=0.0, source="unknown")
         src = source if compact.v else "unknown"

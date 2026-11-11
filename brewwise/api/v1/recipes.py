@@ -43,22 +43,25 @@ async def get_coffee_profile(profile_id: str, db: AsyncSession = Depends(get_db)
         raise HTTPException(status_code=404, detail="Coffee profile not found")
 
     if profile.raw_metadata:
-        return CoffeeProfileDraft.model_validate(profile.raw_metadata)
+        try:
+            return CoffeeProfileDraft.model_validate(profile.raw_metadata)
+        except Exception as e:
+            logger.warning(f"Could not validate raw_metadata directly for {profile_id}: {e}")
 
-    # Construct draft if raw_metadata wasn't stored
+    # Construct draft if raw_metadata wasn't stored or failed validation
     return CoffeeProfileDraft(
         id=profile.id,
-        brand=ExtractedField(value=profile.brand, confidence=profile.confidence),
-        product_name=ExtractedField(value=profile.product_name, confidence=profile.confidence),
-        estate=ExtractedField(value=profile.estate, confidence=profile.confidence),
-        country=ExtractedField(value=profile.country, confidence=profile.confidence),
-        region=ExtractedField(value=profile.region, confidence=profile.confidence),
-        varietal=ExtractedField(value=profile.varietal, confidence=profile.confidence),
-        process=ExtractedField(value=profile.process, confidence=profile.confidence),
-        roast_level=ExtractedField(value=profile.roast_level, confidence=profile.confidence),
-        roast_date=ExtractedField(value=profile.roast_date, confidence=profile.confidence),
-        tasting_notes=ExtractedField(value=profile.tasting_notes, confidence=profile.confidence),
-        altitude=ExtractedField(value=profile.altitude, confidence=profile.confidence),
+        brand=ExtractedField(value=profile.brand, confidence=profile.confidence, source="user_override" if profile.brand else "unknown"),
+        product_name=ExtractedField(value=profile.product_name, confidence=profile.confidence, source="user_override" if profile.product_name else "unknown"),
+        estate=ExtractedField(value=profile.estate, confidence=profile.confidence, source="user_override" if profile.estate else "unknown"),
+        country=ExtractedField(value=profile.country, confidence=profile.confidence, source="user_override" if profile.country else "unknown"),
+        region=ExtractedField(value=profile.region, confidence=profile.confidence, source="user_override" if profile.region else "unknown"),
+        varietal=ExtractedField(value=profile.varietal, confidence=profile.confidence, source="user_override" if profile.varietal else "unknown"),
+        process=ExtractedField(value=profile.process, confidence=profile.confidence, source="user_override" if profile.process else "unknown"),
+        roast_level=ExtractedField(value=profile.roast_level, confidence=profile.confidence, source="user_override" if profile.roast_level else "unknown"),
+        roast_date=ExtractedField(value=profile.roast_date, confidence=profile.confidence, source="user_override" if profile.roast_date else "unknown"),
+        tasting_notes=ExtractedField(value=profile.tasting_notes, confidence=profile.confidence, source="user_override" if profile.tasting_notes else "unknown"),
+        altitude=ExtractedField(value=profile.altitude, confidence=profile.confidence, source="user_override" if profile.altitude else "unknown"),
         image_url=profile.image_url,
     )
 
@@ -80,12 +83,14 @@ async def update_coffee_profile(
             setattr(profile, field, val)
 
     # Update raw_metadata if present
-    draft_dict = profile.raw_metadata or {}
+    draft_dict = dict(profile.raw_metadata) if profile.raw_metadata else {}
     for field, val in update_data.items():
-        if field in draft_dict:
+        if field in draft_dict and isinstance(draft_dict[field], dict):
             draft_dict[field]["value"] = val
             draft_dict[field]["source"] = "user_override"
             draft_dict[field]["confidence"] = 1.0
+        elif val is not None:
+            draft_dict[field] = {"value": val, "source": "user_override", "confidence": 1.0}
 
     profile.raw_metadata = draft_dict
     await db.commit()
