@@ -2,6 +2,8 @@
 
 **BrewWise** is an intelligent, multi-modal pour-over coffee dial-in assistant that bridges the gap between specialty roasters and home brewers. By analyzing coffee bags via computer vision, searching curated brewing knowledge and the live web, and providing deterministic barista feedback, BrewWise turns every bag into an exceptional cup.
 
+> **Live Demo** — Backend: [brewwise-backend.onrender.com](https://brewwise-backend.onrender.com) · Frontend: deployed on Vercel/Render
+
 ---
 
 ## 🌟 Key Features
@@ -22,14 +24,14 @@
 - **Real-Time Discovery**: Automatically searches Google / Tavily during bag scanning for unindexed or new roaster profiles.
 - **Robots.txt & Security Compliance**: Enforces polite crawling, paywall/auth-wall detection, and strict prompt injection sanitization.
 - **KB Sufficiency Skip Rule**: Intelligently skips web searches if local knowledge contains high-confidence exact matches, preserving API quotas.
-- **Redis Extraction Cache**: 30-day cache on extracted URLs with single-call batched LLM parsing.
+- **Redis Extraction Cache**: 30-day cache on extracted URLs with single-call batched LLM parsing (falls back to in-memory cache when Redis is unavailable).
 
 ### 👤 Phase 4 — Personalisation & Iterative Brewing
-- **Equipment Presets**: Calibration across **21 grinder models** (clicks/numbers) and **10 drippers** (flow rates & geometries).
+- **Equipment Presets**: Calibration across **25 grinder models** (clicks/numbers) and **10 drippers** (flow rates & geometries).
 - **Zero-Dependency Security**: Fast, hardened PBKDF2-HMAC-SHA256 password hashing with 16-byte random salts and HS256 JWT sessions.
 - **Deterministic Barista Diagnosis**: Sensory sliders (Sourness, Bitterness, Sweetness, Body, Satisfaction) feed a rules engine diagnosing Under-Extraction, Over-Extraction, Channelling, or Balanced golden cups with targeted 1-variable tweaks.
 - **Side-by-Side Comparison**: Visually inspect parameter shifts between brew attempts to observe how grind or temperature alterations improved cup sweetness.
-- **PWA & Offline Ready**: Installable Progressive Web App with standalone viewport and portable JSON data exports.
+- **PWA Installable**: Progressive Web App with standalone viewport, home-screen install prompt, and portable JSON data exports.
 
 ---
 
@@ -73,7 +75,7 @@ BrewWise is engineered for extreme cost efficiency:
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) (fast Python package manager)
 - Node.js 20+ & npm
-- Google Gemini API Key
+- Google Gemini API Key ([get one free](https://aistudio.google.com/apikey))
 
 ### 1. Local Setup
 
@@ -85,8 +87,8 @@ source .venv/bin/activate
 uv pip install -e ".[dev]"
 
 # Set environment variables
-export GOOGLE_API_KEY="your-gemini-api-key"
-export SECRET_KEY="your-random-jwt-secret"
+cp .env.example .env
+# Edit .env and paste your Gemini API key into GOOGLE_API_KEY=
 
 # Start the FastAPI server
 uvicorn brewwise.main:app --reload --port 8000
@@ -99,15 +101,19 @@ cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:3000` in your browser.
 
 ---
 
 ### 2. Docker Compose (Full Stack)
 
-To run the complete production-ready stack (FastAPI backend, React frontend, PostgreSQL + pgvector, Redis, MinIO):
+To run the complete production-ready stack (FastAPI backend, React frontend, PostgreSQL, Redis, MinIO):
 
 ```bash
+# Copy and configure environment
+cp .env.example .env
+# Edit .env and set GOOGLE_API_KEY
+
 docker compose up --build
 ```
 - **Web App**: `http://localhost:3000`
@@ -116,7 +122,28 @@ docker compose up --build
 
 ---
 
-## 📡 API Reference Overview
+## 🔧 Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GOOGLE_API_KEY` | **Yes** | — | Google Gemini API key for vision, LLM, and embeddings |
+| `SECRET_KEY` | Recommended | auto-generated | JWT signing secret (change in production) |
+| `DATABASE_URL` | No | `sqlite+aiosqlite:///./brewwise.db` | Database connection string |
+| `LLM_MODEL` | No | `gemini-2.5-flash` | Gemini model for recipe generation |
+| `EMBEDDING_MODEL` | No | `gemini-embedding-001` | Embedding model for semantic search |
+| `SEARCH_PROVIDER` | No | `mock` | Web search provider: `mock`, `google`, or `tavily` |
+| `SEARCH_API_KEY` | For live search | — | Google Custom Search or Tavily API key |
+| `GOOGLE_SEARCH_CX` | For Google search | — | Google Custom Search Engine ID |
+| `TAVILY_API_KEY` | For Tavily search | — | Tavily API key |
+| `REDIS_URL` | No | `redis://localhost:6379/0` | Redis URL (falls back to in-memory if unavailable) |
+| `STORAGE_PROVIDER` | No | `local` | Storage backend: `local` or `s3` |
+| `LOG_LEVEL` | No | `INFO` | Logging level |
+
+See [`.env.example`](.env.example) for all available options.
+
+---
+
+## 📡 API Reference
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -125,12 +152,14 @@ docker compose up --build
 | `/api/v1/recipes/search` | `POST` | Search curated and live recipes for a coffee profile |
 | `/api/v1/recipes/generate` | `POST` | Generate dialled-in grounded recipe |
 | `/api/v1/equipment/drippers` | `GET` | List 10 supported dripper profiles & techniques |
-| `/api/v1/equipment/grinders` | `GET` | List 21 supported grinders & pour-over click ranges |
+| `/api/v1/equipment/grinders` | `GET` | List 25 supported grinders & pour-over click ranges |
 | `/api/v1/equipment/profiles` | `GET/POST`| Manage saved user equipment presets |
 | `/api/v1/auth/register` | `POST` | Create a new user account |
 | `/api/v1/auth/login` | `POST` | Authenticate and obtain JWT access token |
 | `/api/v1/brews` | `GET/POST`| Log an extraction and receive deterministic barista diagnosis |
 | `/api/v1/brews/{id}/feedback` | `POST` | Update cup sensory sliders and recalculate adjustments |
+
+Full interactive documentation is available at `/docs` (Swagger) and `/redoc` when the backend is running.
 
 ---
 
@@ -139,47 +168,109 @@ docker compose up --build
 The test suite covers unit tests, integration pipelines, token budget gates, and a 30-sample specialty coffee benchmark:
 
 ```bash
-# Run complete test suite (40 tests across 10 modules)
+# Run complete test suite (41 tests across 10 modules)
 uv run pytest -v
 
 # Run frontend typecheck and production bundle build
 cd frontend && npm run build
 ```
 
+### Test Modules
+| Module | Tests | Coverage |
+|---|---|---|
+| `test_phase4_personalisation.py` | 9 | Brew logging, sensory feedback, equipment profiles |
+| `test_phase3_discovery.py` | 7 | Live web discovery, robots.txt, injection filtering |
+| `test_phase2_retrieval.py` | 6 | Vector embeddings, hybrid retrieval, RRF ranking |
+| `test_normaliser.py` | 5 | Identity normalisation, canonical mapping |
+| `test_evaluation_benchmark.py` | 4 | 30-sample global coffee evaluation dataset |
+| `test_api_endpoints.py` | 3 | REST API endpoint contracts |
+| `test_recipe_validator.py` | 3 | Arithmetic validation, pour schedule integrity |
+| `test_token_budget.py` | 2 | ≤2 LLM calls, ≤2600 output tokens per scan |
+| `test_schemas_and_compact.py` | 1 | Schema serialization & compact format |
+| `test_search_endpoint.py` | 1 | Search endpoint integration |
+
 ### Automated CI Pipeline
-A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every commit and pull request to enforce:
-- Zero linting errors and passing backend tests
-- Complete frontend TypeScript typecheck and Vite production bundling
-- Strict token budget compliance $\le 2$ LLM calls per core scan
+A GitHub Actions workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
+- Backend: Python 3.11 + `uv run pytest -v`
+- Frontend: Node.js 20 + `tsc -b && vite build` (typecheck + production bundle)
 
 ---
 
-## 📋 Definition of Done Verification
+## 🚀 Cloud Deployment
 
-- [x] Full mobile-responsive UI with camera capture and manual overrides
-- [x] Zero fabricated source citations with verified URL attribution
-- [x] Deterministic 100% arithmetic validation on brew ratios and pour volumes
-- [x] 21-model grinder guide and 10 dripper models with physics profiles
-- [x] Interactive audio/haptic pour timer with Screen Wake Lock API
-- [x] Deterministic barista diagnosis for under/over extraction and channelling
-- [x] 30-sample diverse global evaluation dataset
-- [x] GitHub Actions CI and Docker Compose orchestration
+### Option A: Render (Free Tier — One Click)
 
----
-
-## 🚀 One-Click Cloud Deployment (Render Free Tier)
-
-BrewWise includes a `render.yaml` Blueprint for 100% free hosting:
+BrewWise includes a [`render.yaml`](render.yaml) Blueprint for free hosting:
 
 1. Push your repository to GitHub.
-2. Go to [Render Dashboard -> Blueprints](https://dashboard.render.com/blueprints).
-3. Connect your GitHub repository. Render automatically reads `render.yaml` and sets up:
-   - **`brewwise-backend`** (Free Web Service via Docker, dynamic `$PORT`, health check `/api/v1/health`)
-   - **`brewwise-frontend`** (Free Static Site with SPA rewrites `/* -> /index.html` and connected `VITE_API_URL`)
-4. In the Render prompt, fill in your `GOOGLE_API_KEY` (Gemini API key).
-5. Click **Apply** — Render builds and deploys both services automatically!
+2. Go to [Render Dashboard → Blueprints](https://dashboard.render.com/blueprints).
+3. Connect your GitHub repository. Render reads `render.yaml` and provisions:
+   - **`brewwise-backend`** — Free Web Service (Docker, health check at `/api/v1/health`)
+   - **`brewwise-frontend`** — Free Static Site (SPA rewrites, auto-connected `VITE_API_URL`)
+4. In the Render prompt, fill in your `GOOGLE_API_KEY`.
+5. Click **Apply** — Render builds and deploys both services automatically.
+
+### Option B: Vercel (Frontend) + Render (Backend)
+
+For faster frontend CDN and edge caching:
+
+1. Deploy the backend on Render (steps above).
+2. Import your repo into [Vercel](https://vercel.com):
+   - **Root Directory**: `frontend`
+   - **Framework Preset**: Vite
+3. Add one environment variable in Vercel Settings → Environment Variables:
+   - `VITE_API_URL` = `https://brewwise-backend.onrender.com` (your Render backend URL)
+4. Deploy. Vercel handles SPA routing via [`frontend/vercel.json`](frontend/vercel.json).
+
+### Option C: Railway
+
+A [`railway.json`](railway.json) is included for Railway deployments. Connect your repo, set `GOOGLE_API_KEY`, and deploy.
+
+---
+
+## 📋 Project Structure
+
+```
+brewwise/
+├── api/v1/              # FastAPI route handlers (scan, recipes, equipment, auth, brews)
+├── config.py            # Pydantic settings (28 environment variables)
+├── db/                  # SQLAlchemy async models, session, migrations, seed data
+├── dependencies.py      # Dependency injection wiring
+├── models/              # ORM models (CoffeeProfile, RecipeSource, User, BrewLog)
+├── prompts/v1/          # Jinja2 prompt templates for Gemini
+├── providers/
+│   ├── cache/           # Redis with in-memory fallback
+│   ├── embeddings/      # Gemini embedding provider (gemini-embedding-001)
+│   ├── llm/             # Gemini LLM provider
+│   ├── search/          # Google Custom Search, Tavily, Mock
+│   └── storage/         # Local filesystem storage
+├── schemas/             # Pydantic request/response schemas
+└── services/
+    ├── discovery/       # Live web discovery orchestrator
+    ├── equipment/       # 25 grinders + 10 drippers catalogue & guides
+    ├── identity/        # Coffee normalisation & confidence scoring
+    ├── ingestion/       # RAG pipeline: parsing, indexing, embedding
+    ├── retrieval/       # Hybrid retriever (dense + BM25 + RRF)
+    ├── synthesis/       # Recipe generator & arithmetic validator
+    └── vision/          # Gemini Vision extraction & mock provider
+
+frontend/                # React 19 + TypeScript + Vite 8
+├── src/
+│   ├── components/      # UI components (Scanner, Timer, BrewLog, Equipment)
+│   ├── pages/           # Route pages
+│   ├── api.ts           # Typed API client
+│   └── types.ts         # Shared TypeScript interfaces
+├── vercel.json          # Vercel SPA rewrite config
+└── vite.config.ts       # Vite dev server config (port 3000)
+
+tests/                   # 41 tests across 10 modules
+data/                    # 30-sample evaluation dataset + curated recipes
+```
 
 ---
 
 ## 📄 License
-MIT License. Built for the specialty coffee community with passion for precision brewing. ☕
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+Built for the specialty coffee community with passion for precision brewing. ☕
