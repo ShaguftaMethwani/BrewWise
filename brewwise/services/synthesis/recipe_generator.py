@@ -131,6 +131,9 @@ def generate_baseline_recipe(
 
 
 class RecipeGenerator:
+    MAX_SYNTHESIS_CALLS: int = 1
+    generate_fallback_baseline = staticmethod(generate_baseline_recipe)
+
     def __init__(
         self,
         llm_provider: Optional[LLMProvider] = None,
