@@ -124,6 +124,7 @@ export interface ScoredMatch {
   coffee_metadata: Record<string, any>;
   extracted_recipe: Record<string, any>;
   match_reasons: string[];
+  is_live_discovered?: boolean;
 }
 
 export interface ParameterConflict {
@@ -139,6 +140,10 @@ export interface EvidencePackage {
   conflicts: ParameterConflict[];
   coverage_summary: string;
   compact_context: string;
+  discovery_status?: 'skipped_sufficient_kb' | 'success' | 'partial' | 'failed' | 'disabled' | string;
+  discovery_message?: string | null;
+  urls_searched?: number;
+  recipes_discovered?: number;
 }
 
 export interface RecipeSearchRequest {

@@ -18,12 +18,18 @@ from brewwise.schemas.recipe import (
     SourceReference,
     Adaptation,
 )
-from brewwise.dependencies import get_recipe_generator, get_hybrid_retriever
+from brewwise.dependencies import (
+    get_recipe_generator,
+    get_hybrid_retriever,
+    get_discovery_orchestrator,
+)
 from brewwise.services.synthesis.recipe_generator import RecipeGenerator
 from brewwise.services.retrieval.hybrid_retriever import HybridRetriever
 from brewwise.services.retrieval.query_builder import QueryBuilder
 from brewwise.services.retrieval.relevance import MatchClassifier
 from brewwise.services.retrieval.evidence_evaluator import EvidenceEvaluator, EvidencePackage
+from brewwise.services.discovery.orchestrator import DiscoveryOrchestrator
+from brewwise.services.discovery.result_merger import ResultMerger
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Recipes & Profiles"])
@@ -91,20 +97,46 @@ async def update_coffee_profile(
 async def search_recipes(
     request: RecipeSearchRequest,
     retriever: HybridRetriever = Depends(get_hybrid_retriever),
+    discovery: DiscoveryOrchestrator = Depends(get_discovery_orchestrator),
     db: AsyncSession = Depends(get_db)
 ):
-    """Executes query building -> hybrid retrieval -> match classification -> deterministic evidence evaluation."""
+    """Executes local hybrid retrieval + parallel inline web discovery with RRF and match classification."""
     profile_draft = await get_coffee_profile(request.coffee_profile_id, db)
 
     # 1. Query construction
     queries = QueryBuilder.build_queries(profile_draft, dripper=request.dripper)
 
-    # 2. Hybrid search with RRF
-    candidates = await retriever.search(queries, db, top_k=20)
+    # 2. Local hybrid search
+    local_candidates = await retriever.search(queries, db, top_k=20)
 
-    # 3. Match classification & scoring
-    scored_matches = []
-    for source, base_score in candidates:
+    # Compute local match stats for discovery skip rule
+    local_matches = []
+    for source, score in local_candidates:
+        match = MatchClassifier.score_and_classify(
+            source=source,
+            profile=profile_draft,
+            target_dripper=request.dripper,
+            base_retrieval_score=score
+        )
+        if match:
+            local_matches.append(match)
+
+    top_score = max((m.relevance_score for m in local_matches), default=0.0)
+
+    # 3. Live web discovery (runs with intelligent skip if KB already sufficient)
+    discovery_res = await discovery.discover(
+        profile=profile_draft,
+        db=db,
+        kb_matches_count=len(local_matches),
+        kb_top_score=top_score
+    )
+
+    # 4. Merge live discovered recipes into local candidate set
+    merged_candidates = ResultMerger.merge(discovery_res.discovered_recipes, local_candidates)
+
+    # 5. Rerank and classify all merged candidates
+    all_scored_matches = []
+    for source, base_score in merged_candidates:
         match = MatchClassifier.score_and_classify(
             source=source,
             profile=profile_draft,
@@ -112,10 +144,16 @@ async def search_recipes(
             base_retrieval_score=base_score
         )
         if match:
-            scored_matches.append(match)
+            all_scored_matches.append(match)
 
-    # 4. Evidence evaluation
-    evidence = EvidenceEvaluator.evaluate(scored_matches)
+    # 6. Evidence evaluation with discovery status
+    evidence = EvidenceEvaluator.evaluate(
+        matches=all_scored_matches,
+        discovery_status=discovery_res.search_status,
+        discovery_message=discovery_res.message,
+        urls_searched=discovery_res.urls_attempted,
+        recipes_discovered=discovery_res.urls_yielded_recipes
+    )
     return evidence
 
 
@@ -124,17 +162,40 @@ async def generate_recipe(
     request: RecipeGenerateRequest,
     generator: RecipeGenerator = Depends(get_recipe_generator),
     retriever: HybridRetriever = Depends(get_hybrid_retriever),
+    discovery: DiscoveryOrchestrator = Depends(get_discovery_orchestrator),
     db: AsyncSession = Depends(get_db)
 ):
     # Fetch profile
     profile_draft = await get_coffee_profile(request.coffee_profile_id, db)
 
-    # Run hybrid retrieval & evidence evaluation
+    # 1. Search locally & run discovery
     queries = QueryBuilder.build_queries(profile_draft, dripper=request.dripper)
-    candidates = await retriever.search(queries, db, top_k=20)
+    local_candidates = await retriever.search(queries, db, top_k=20)
 
-    scored_matches = []
-    for source, base_score in candidates:
+    local_matches = []
+    for source, score in local_candidates:
+        match = MatchClassifier.score_and_classify(
+            source=source,
+            profile=profile_draft,
+            target_dripper=request.dripper,
+            base_retrieval_score=score
+        )
+        if match:
+            local_matches.append(match)
+
+    top_score = max((m.relevance_score for m in local_matches), default=0.0)
+
+    discovery_res = await discovery.discover(
+        profile=profile_draft,
+        db=db,
+        kb_matches_count=len(local_matches),
+        kb_top_score=top_score
+    )
+
+    merged_candidates = ResultMerger.merge(discovery_res.discovered_recipes, local_candidates)
+
+    all_scored_matches = []
+    for source, base_score in merged_candidates:
         match = MatchClassifier.score_and_classify(
             source=source,
             profile=profile_draft,
@@ -142,9 +203,15 @@ async def generate_recipe(
             base_retrieval_score=base_score
         )
         if match:
-            scored_matches.append(match)
+            all_scored_matches.append(match)
 
-    evidence_pkg = EvidenceEvaluator.evaluate(scored_matches)
+    evidence_pkg = EvidenceEvaluator.evaluate(
+        matches=all_scored_matches,
+        discovery_status=discovery_res.search_status,
+        discovery_message=discovery_res.message,
+        urls_searched=discovery_res.urls_attempted,
+        recipes_discovered=discovery_res.urls_yielded_recipes
+    )
 
     # Grounded recipe generation (single call)
     recipe = await generator.generate(profile_draft, request, evidence=evidence_pkg)

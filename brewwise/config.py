@@ -33,9 +33,16 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: Optional[str] = Field(default=None, description="Google Gemini API key")
 
     # Search & Discovery
-    SEARCH_PROVIDER: str = Field(default="google", description="Search provider")
+    SEARCH_PROVIDER: str = Field(default="mock", description="Search provider (google, tavily, mock)")
     SEARCH_API_KEY: Optional[str] = Field(default=None, description="Search API key")
-    LIVE_DISCOVERY_ENABLED: bool = Field(default=False, description="Enable inline web discovery")
+    GOOGLE_SEARCH_CX: Optional[str] = Field(default=None, description="Google Custom Search Engine ID")
+    TAVILY_API_KEY: Optional[str] = Field(default=None, description="Tavily API key")
+    LIVE_DISCOVERY_ENABLED: bool = Field(default=True, description="Enable inline web discovery")
+    LIVE_DISCOVERY_PERSIST: bool = Field(default=True, description="Persist discovered sources into KB")
+    LIVE_DISCOVERY_TOTAL_TIMEOUT: float = Field(default=15.0, description="Total budget in seconds for live discovery")
+    LIVE_DISCOVERY_PER_URL_TIMEOUT: float = Field(default=6.0, description="Per-URL fetch timeout in seconds")
+    LIVE_DISCOVERY_RATE_LIMIT: int = Field(default=10, description="Max queries per minute")
+    LIVE_DISCOVERY_MAX_URLS: int = Field(default=5, description="Max URLs to fetch per scan")
 
     # Security & Limits
     CORS_ORIGINS: List[str] = Field(

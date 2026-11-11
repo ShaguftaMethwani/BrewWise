@@ -25,6 +25,8 @@ class ScoredMatch(BaseModel):
     coffee_metadata: Dict[str, Any] = Field(default_factory=dict)
     extracted_recipe: Dict[str, Any] = Field(default_factory=dict)
     match_reasons: list[str] = Field(default_factory=list)
+    is_live_discovered: bool = False
+
 
 
 class MatchClassifier:
@@ -146,5 +148,6 @@ class MatchClassifier:
             relevance_score=final_score,
             coffee_metadata=meta,
             extracted_recipe=recipe_dict,
-            match_reasons=reasons
+            match_reasons=reasons,
+            is_live_discovered=(source.extraction_method == "live_search")
         )

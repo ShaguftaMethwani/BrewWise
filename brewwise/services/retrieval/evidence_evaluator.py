@@ -17,19 +17,34 @@ class EvidencePackage(BaseModel):
     conflicts: List[ParameterConflict] = Field(default_factory=list)
     coverage_summary: str
     compact_context: str
+    discovery_status: Optional[str] = "disabled"
+    discovery_message: Optional[str] = None
+    urls_searched: int = 0
+    recipes_discovered: int = 0
 
 
 class EvidenceEvaluator:
     @classmethod
-    def evaluate(cls, matches: List[ScoredMatch]) -> EvidencePackage:
+    def evaluate(
+        cls,
+        matches: List[ScoredMatch],
+        discovery_status: Optional[str] = "disabled",
+        discovery_message: Optional[str] = None,
+        urls_searched: int = 0,
+        recipes_discovered: int = 0
+    ) -> EvidencePackage:
         """Deterministically evaluates retrieved candidates and forms an EvidencePackage."""
         if not matches:
             return EvidencePackage(
                 match_outcome="C",
                 matched_recipes=[],
                 conflicts=[],
-                coverage_summary="No matching pour-over recipes found in knowledge base. Falling back to core brewing physics.",
-                compact_context="NO_RETRIEVED_RECIPES"
+                coverage_summary="No matching pour-over recipes found in knowledge base or live search. Falling back to core brewing physics.",
+                compact_context="NO_RETRIEVED_RECIPES",
+                discovery_status=discovery_status,
+                discovery_message=discovery_message,
+                urls_searched=urls_searched,
+                recipes_discovered=recipes_discovered
             )
 
         # Sort matches by relevance score descending
@@ -77,7 +92,11 @@ class EvidenceEvaluator:
             matched_recipes=sorted_matches[:5],
             conflicts=conflicts,
             coverage_summary=coverage,
-            compact_context=compact_context
+            compact_context=compact_context,
+            discovery_status=discovery_status,
+            discovery_message=discovery_message,
+            urls_searched=urls_searched,
+            recipes_discovered=recipes_discovered
         )
 
     @classmethod

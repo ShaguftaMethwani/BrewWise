@@ -81,3 +81,31 @@ def get_embedding_provider() -> EmbeddingProvider:
 def get_hybrid_retriever() -> HybridRetriever:
     return HybridRetriever(embedding_provider=get_embedding_provider())
 
+
+from brewwise.providers.search.base import SearchProvider
+from brewwise.providers.search.google_search import GoogleSearchProvider
+from brewwise.providers.search.tavily import TavilySearchProvider
+from brewwise.providers.search.mock import MockSearchProvider
+from brewwise.services.discovery.orchestrator import DiscoveryOrchestrator
+
+
+@lru_cache()
+def get_search_provider() -> Optional[SearchProvider]:
+    provider = settings.SEARCH_PROVIDER.lower()
+    if provider == "google" and settings.SEARCH_API_KEY and settings.GOOGLE_SEARCH_CX:
+        return GoogleSearchProvider(api_key=settings.SEARCH_API_KEY, cx=settings.GOOGLE_SEARCH_CX)
+    elif provider == "tavily" and (settings.TAVILY_API_KEY or settings.SEARCH_API_KEY):
+        return TavilySearchProvider(api_key=settings.TAVILY_API_KEY or settings.SEARCH_API_KEY)
+    elif provider == "mock" or settings.LIVE_DISCOVERY_ENABLED:
+        return MockSearchProvider()
+    return None
+
+
+def get_discovery_orchestrator() -> DiscoveryOrchestrator:
+    return DiscoveryOrchestrator(
+        search_provider=get_search_provider(),
+        cache_provider=get_cache_provider(),
+        embedding_provider=get_embedding_provider()
+    )
+
+

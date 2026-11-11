@@ -26,8 +26,19 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
           fontSize: '0.9rem',
         }}
       >
-        <span className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#f59e0b', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
-        Searching curated knowledge base & evaluating recipe evidence...
+        <span
+          className="spinner"
+          style={{
+            width: '16px',
+            height: '16px',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderTopColor: '#f59e0b',
+            borderRadius: '50%',
+            display: 'inline-block',
+            animation: 'spin 1s linear infinite',
+          }}
+        ></span>
+        Searching knowledge base & running live inline web discovery...
       </div>
     );
   }
@@ -81,7 +92,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
           userSelect: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span
             style={{
               padding: '0.25rem 0.65rem',
@@ -100,7 +111,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
               : '🔬 PHYSICS ENGINE'}
           </span>
           <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 600, color: '#f3f4f6' }}>
-            Knowledge Base Evidence ({evidence.matched_recipes.length} matches)
+            Retrieved Evidence ({evidence.matched_recipes.length} sources)
           </h4>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -112,6 +123,48 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
           </span>
         </div>
       </div>
+
+      {/* Live Web Discovery Status Notification */}
+      {evidence.discovery_status && evidence.discovery_status !== 'disabled' && (
+        <div
+          style={{
+            marginTop: '0.85rem',
+            padding: '0.55rem 0.85rem',
+            borderRadius: '6px',
+            fontSize: '0.82rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background:
+              evidence.discovery_status === 'skipped_sufficient_kb'
+                ? 'rgba(59, 130, 246, 0.08)'
+                : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
+                ? 'rgba(16, 185, 129, 0.08)'
+                : 'rgba(255, 255, 255, 0.04)',
+            border:
+              evidence.discovery_status === 'skipped_sufficient_kb'
+                ? '1px solid rgba(59, 130, 246, 0.2)'
+                : evidence.discovery_status === 'success' && (evidence.recipes_discovered || 0) > 0
+                ? '1px solid rgba(16, 185, 129, 0.2)'
+                : '1px solid rgba(255, 255, 255, 0.08)',
+            color: '#e5e7eb',
+          }}
+        >
+          <span>
+            {evidence.discovery_status === 'skipped_sufficient_kb'
+              ? '⚡'
+              : evidence.discovery_status === 'success'
+              ? '🌐'
+              : 'ℹ️'}
+          </span>
+          <span>
+            {evidence.discovery_message ||
+              (evidence.discovery_status === 'skipped_sufficient_kb'
+                ? 'Skipped web crawler: High confidence recipes verified in knowledge base.'
+                : 'Inline web discovery completed.')}
+          </span>
+        </div>
+      )}
 
       <p style={{ margin: '0.6rem 0 0', fontSize: '0.86rem', color: '#9ca3af', lineHeight: 1.45 }}>
         {evidence.coverage_summary}
@@ -160,6 +213,21 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            background: match.is_live_discovered ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                            color: match.is_live_discovered ? '#60a5fa' : '#9ca3af',
+                            border: match.is_live_discovered ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                          }}
+                        >
+                          {match.is_live_discovered ? '🌐 DISCOVERED ONLINE' : '📚 KNOWLEDGE BASE'}
+                        </span>
+                      </div>
                       <a
                         href={match.url}
                         target="_blank"
