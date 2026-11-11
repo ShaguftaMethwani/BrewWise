@@ -290,11 +290,6 @@ export const RecipeView: React.FC = () => {
         />
       </div>
 
-      {/* Sensory Feedback & Dial-In Barista Diagnosis */}
-      <div style={{ marginBottom: '28px' }}>
-        <FeedbackForm recipe={recipe} />
-      </div>
-
       {/* Pour Schedule Table */}
       <div className="glass-panel" style={{ padding: '28px', marginBottom: '28px' }}>
         <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>
@@ -379,6 +374,11 @@ export const RecipeView: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Sensory Feedback & Dial-In Barista Diagnosis */}
+      <div style={{ marginBottom: '28px' }}>
+        <FeedbackForm recipe={recipe} />
+      </div>
 
       {/* Verified Provenance & Sources Section */}
       {recipe.source_recipes && recipe.source_recipes.length > 0 && (
