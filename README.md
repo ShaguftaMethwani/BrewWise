@@ -167,5 +167,19 @@ A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every commit and 
 
 ---
 
+## 🚀 One-Click Cloud Deployment (Render Free Tier)
+
+BrewWise includes a `render.yaml` Blueprint for 100% free hosting:
+
+1. Push your repository to GitHub.
+2. Go to [Render Dashboard -> Blueprints](https://dashboard.render.com/blueprints).
+3. Connect your GitHub repository. Render automatically reads `render.yaml` and sets up:
+   - **`brewwise-backend`** (Free Web Service via Docker, dynamic `$PORT`, health check `/api/v1/health`)
+   - **`brewwise-frontend`** (Free Static Site with SPA rewrites `/* -> /index.html` and connected `VITE_API_URL`)
+4. In the Render prompt, fill in your `GOOGLE_API_KEY` (Gemini API key).
+5. Click **Apply** — Render builds and deploys both services automatically!
+
+---
+
 ## 📄 License
 MIT License. Built for the specialty coffee community with passion for precision brewing. ☕

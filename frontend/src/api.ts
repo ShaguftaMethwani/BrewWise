@@ -14,7 +14,13 @@ import type {
   BrewLogFeedbackUpdate
 } from './types';
 
-const API_BASE = `${import.meta.env.VITE_API_URL || ''}/api/v1`;
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const normalizedApiUrl = rawApiUrl
+  ? rawApiUrl.startsWith('http')
+    ? rawApiUrl.replace(/\/+$/, '')
+    : `https://${rawApiUrl.replace(/\/+$/, '')}`
+  : '';
+const API_BASE = `${normalizedApiUrl}/api/v1`;
 
 // Token storage helpers
 const TOKEN_KEY = 'brewwise_jwt_token';
