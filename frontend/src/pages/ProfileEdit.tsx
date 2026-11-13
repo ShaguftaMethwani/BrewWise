@@ -5,6 +5,17 @@ import { getProfile, updateProfile, getDrippers, getGrinders, generateRecipe } f
 import type { CoffeeProfileDraft, EquipmentItem } from '../types';
 import { ConfidenceBadge } from '../components/ConfidenceBadge';
 
+const KNOWN_PROCESSES = ['washed', 'natural', 'honey', 'anaerobic_natural', 'anaerobic_washed', 'carbonic_maceration', 'thermal_shock'];
+const KNOWN_ROASTS = ['light', 'medium_light', 'medium', 'medium_dark', 'dark', 'omni'];
+
+// Turns a stored value such as "natural_-_carbonic_maceration" into "Natural Carbonic Maceration"
+const prettify = (value: string) =>
+  value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
 // Typed-in profiles have nothing "extracted", so confidence badges are hidden for them
 const FieldBadge: React.FC<{ manual: boolean; confidence: number; source: string }> = ({ manual, confidence, source }) =>
   manual ? null : <ConfidenceBadge confidence={confidence} source={source as any} />;
@@ -239,6 +250,10 @@ export const ProfileEdit: React.FC = () => {
               <option value="anaerobic_washed">Anaerobic Washed</option>
               <option value="carbonic_maceration">Carbonic Maceration</option>
               <option value="thermal_shock">Thermal Shock</option>
+              {/* A value read from the bag that is not in the list is kept and shown, not replaced */}
+              {formData.process && !KNOWN_PROCESSES.includes(formData.process) && (
+                <option value={formData.process}>{prettify(formData.process)}</option>
+              )}
             </select>
           </div>
 
@@ -259,6 +274,9 @@ export const ProfileEdit: React.FC = () => {
               <option value="medium_dark">Medium-Dark</option>
               <option value="dark">Dark Roast</option>
               <option value="omni">Omni Roast</option>
+              {formData.roast_level && !KNOWN_ROASTS.includes(formData.roast_level) && (
+                <option value={formData.roast_level}>{prettify(formData.roast_level)}</option>
+              )}
             </select>
           </div>
 

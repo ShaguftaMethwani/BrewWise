@@ -15,6 +15,12 @@ services:
     envVars:
       - key: GOOGLE_API_KEY
         sync: false
+      # Live web search (optional): set SEARCH_PROVIDER to "tavily" and supply the key.
+      # Left blank, the app uses the local knowledge base only and says so in the UI.
+      - key: SEARCH_PROVIDER
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL

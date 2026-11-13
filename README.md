@@ -1,324 +1,299 @@
 # BrewWise ☕
 
-**BrewWise** is an intelligent, multi-modal pour-over coffee dial-in assistant that bridges the gap between specialty roasters and home brewers. By analyzing coffee bags via computer vision, searching curated brewing knowledge and the live web, and providing deterministic barista feedback, BrewWise turns every bag into an exceptional cup.
+BrewWise turns a coffee bag into a pour-over recipe. Photograph the bag (or type the details in), and it reads the coffee's identity, looks for recipes other people have published for that coffee, and produces a recipe adapted to your dripper, grinder and dose — with the sources shown and anything it could not verify labelled as such.
 
-> **Live Demo** — Backend: [brewwise-backend.onrender.com](https://brewwise-backend.onrender.com) · Frontend: deployed on Vercel/Render
+> **Live demo** — [brew-wise.vercel.app](https://brew-wise.vercel.app/) · Backend API: [brewwise-backend.onrender.com](https://brewwise-backend.onrender.com) ([API docs](https://brewwise-backend.onrender.com/docs)). The backend runs on Render's free tier and sleeps when idle, so the first request can take a minute.
 
----
-
-## 📱 Application Screenshots & User Journey
-
-<div align="center">
-
-### 1. Vision Bag Capture & Extraction
-*Capture or upload any specialty coffee bag photo. Gemini 2.5 Flash extracts metadata using compact, token-compressed schemas.*
-
-![01 · Bag Scan & Vision OCR](docs/screenshots/01-bag-scan.svg)
-
-<br/>
-
-### 2. Extracted Profile Review & Equipment Setup
-*Review extracted fields with confidence badges (`>=90% Bag`, `~85% Inferred`), correct any values, and calibrate your grinder & dripper.*
-
-![02 · Profile Review & Equipment Setup](docs/screenshots/02-profile-review.svg)
-
-<br/>
-
-### 3. Precision Dialed-In Recipe & Pour Schedule
-*Receive an evidence-grounded recipe with 100% verified arithmetic, grinder click calibration, and cumulative scale weight targets.*
-
-![03 · Precision Dialed-In Recipe](docs/screenshots/03-recipe-view.svg)
-
-<br/>
-
-### 4. Interactive Step-by-Step Pour Timer
-*Follow real-time pour stages with cumulative water scale targets, Screen Wake Lock API (keeps mobile display awake), and synthesized audio chimes.*
-
-![04 · Interactive Pour Timer](docs/screenshots/04-brew-timer.svg)
-
-<br/>
-
-### 5. Post-Brew Sensory Evaluation & Barista Diagnosis
-*Rate cup sweetness, acidity, and body. The deterministic diagnosis engine identifies extraction imbalances and recommends targeted 1-variable tweaks.*
-
-![05 · Sensory Feedback & Diagnosis](docs/screenshots/05-sensory-feedback.svg)
-
-<br/>
-
-### 6. Grounded RAG Evidence & Source Provenance
-*Explore retrieved champion recipes with match classifications (Exact, Strong, Related) and verified outbound links with zero fabricated citations.*
-
-![06 · Verified Provenance & Evidence](docs/screenshots/06-evidence-provenance.svg)
-
-</div>
+**Contents:** [What it does](#what-it-does) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Configuration](#configuration) · [API reference](#api-reference) · [Testing](#testing) · [Deployment](#deployment) · [Project structure](#project-structure) · [Known limitations](#known-limitations) · [License](#license)
 
 ---
 
-## 🌟 Key Features
+## What it does
 
-### 📸 Phase 1 — Multi-Modal Vision & Recipe Synthesis
-- **Zero-Friction Bag Capture**: Point your camera at any specialty coffee bag. Gemini 2.5 Flash extracts roaster, varietal, process, origin, elevation, and tasting notes in a single structured pass.
-- **Domain Normalisation**: Canonical mapping of roasters, roast profiles, and processing methods (washed, natural, anaerobic, thermal shock, etc.).
-- **Strict Arithmetic Validation**: 100% mathematical guarantee across coffee-to-water ratios, multi-pour schedules, water volumes, and brew temperatures.
-- **Interactive Pour Timer**: Real-time step-by-step guidance, cumulative weight scale targets, Screen Wake Lock API (keeps mobile display on), and synthesized Web Audio chimes.
-
-### 🧠 Phase 2 — Grounded RAG & Provenance
-- **Hybrid Retrieval (RRF)**: Combines dense vector semantic search (768-dim Gemini embeddings) with sparse BM25 keyword matching across curated champion recipes.
-- **Relevance Classification**: Deterministically categorizes matches as **Exact Match**, **Strong Match**, **Related Coffee**, or **Analogous Coffee**.
-- **Evidence Evaluation**: Automatically detects parameter conflicts between sources, provides barista resolution logic, and synthesizes compact evidence packages.
-- **Verified Provenance**: Zero fabricated citations. Every referenced source is checked against verifiable URLs and attributed transparently in the UI.
-
-### 🌐 Phase 3 — Inline Live Web Discovery
-- **Real-Time Discovery**: Automatically searches Google / Tavily during bag scanning for unindexed or new roaster profiles.
-- **Robots.txt & Security Compliance**: Enforces polite crawling, paywall/auth-wall detection, and strict prompt injection sanitization.
-- **KB Sufficiency Skip Rule**: Intelligently skips web searches if local knowledge contains high-confidence exact matches, preserving API quotas.
-- **Redis Extraction Cache**: 30-day cache on extracted URLs with single-call batched LLM parsing (falls back to in-memory cache when Redis is unavailable).
-
-### 👤 Phase 4 — Personalisation & Iterative Brewing
-- **Equipment Presets**: Calibration across **25 grinder models** (clicks/numbers) and **10 drippers** (flow rates & geometries).
-- **Zero-Dependency Security**: Fast, hardened PBKDF2-HMAC-SHA256 password hashing with 16-byte random salts and HS256 JWT sessions.
-- **Deterministic Barista Diagnosis**: Sensory sliders (Sourness, Bitterness, Sweetness, Body, Satisfaction) feed a rules engine diagnosing Under-Extraction, Over-Extraction, Channelling, or Balanced golden cups with targeted 1-variable tweaks.
-- **Side-by-Side Comparison**: Visually inspect parameter shifts between brew attempts to observe how grind or temperature alterations improved cup sweetness.
-- **PWA Installable**: Progressive Web App with standalone viewport, home-screen install prompt, and portable JSON data exports.
+- **Reads the bag.** Gemini vision extracts roaster, coffee name, estate, origin, varietal, process, roast level and tasting notes. Each field carries a confidence score, and anything missing or illegible stays *unknown* rather than being guessed.
+- **Or skip the photo.** "Type coffee details instead" opens the same form for manual entry.
+- **Finds existing recipes.** A hybrid search (embeddings + keyword overlap, merged with reciprocal rank fusion) runs over a curated knowledge base of 54 recipes. When a search provider is configured, it also searches the live web, fetches the pages and extracts any pour-over recipes they contain.
+- **Says how close each match is.** Sources are classified as *exact*, *strong*, *related* or *analogous*. A recipe for a different lot from the same estate is a related reference, never an exact match.
+- **Generates a personalised recipe.** Dose, water, ratio, temperature, grind, bloom, a timed pour schedule, step-by-step instructions and troubleshooting. Grinder click settings come from a catalogue of 25 grinders; an unknown grinder gets a relative grind description instead of an invented setting.
+- **Checks its own arithmetic.** Every recipe is validated before display: pours must add up to the total water, the ratio must match dose and water, and the timings must be possible.
+- **Shows where everything came from.** Each recipe is labelled as sourced, adapted from a related coffee, AI-generated, or rule-based. Cited sources are always records that were actually retrieved.
+- **Helps you iterate.** A pour timer with audio cues and screen wake lock, a post-brew feedback form that diagnoses the cup and suggests one or two changes, brew history, and side-by-side comparison of attempts.
 
 ---
 
-## 🏗️ System Architecture
+## Screenshots
+
+All screenshots are captured from the running app, using a real bag scan (Blue Tokai, Mooleh Manay Estate).
+
+### 1. Scan a bag — or type the details
+
+![Home screen with photo upload and manual entry](docs/screenshots/01-bag-scan.png)
+
+### 2. Review the extracted profile and choose equipment
+
+Confidence badges show how sure the extraction is. Every field is editable before generating.
+
+![Extracted coffee profile with confidence badges and brewing setup](docs/screenshots/02-profile-review.png)
+
+### 3. Recipe and pour schedule
+
+![Recipe parameters and pour schedule](docs/screenshots/03-recipe-view.png)
+
+### 4. Pour timer
+
+![Pour timer mid-brew](docs/screenshots/04-brew-timer.png)
+
+### 5. Post-brew feedback and diagnosis
+
+![Sensory feedback form and resulting diagnosis](docs/screenshots/05-sensory-feedback.png)
+
+### 6. Retrieved evidence
+
+Each source shows its match type, its parameters and why it matched. The banner reports what the live web search did for this coffee.
+
+![Evidence panel listing retrieved sources](docs/screenshots/06-evidence-provenance.png)
+
+---
+
+## How it works
 
 ```mermaid
 graph TD
-    A[Coffee Bag Photo] --> B[Gemini 2.5 Flash Vision]
-    B --> C[Compact Profile Schema]
-    C --> D[Identity Normaliser]
-    D --> E{Local KB Exact Match?}
-    E -- Yes --> G[Hybrid Retriever RRF]
-    E -- No --> F[Live Web Discovery Orchestrator]
-    F --> G
-    G --> H[Evidence Evaluator & Classifier]
-    H --> I[Single-Call Grounded Generator]
-    I --> J[Arithmetic Validator]
-    J --> K[Personalised Pour-Over Recipe]
-    K --> L[Interactive Brew Timer]
-    L --> M[Post-Brew Sensory Feedback]
-    M --> N[Deterministic Feedback Analyser]
-    N -->|Dial-In Adjustment| K
+    A[Bag photo] --> B[Gemini vision extraction]
+    A2[Typed details] --> D
+    B --> D[Identity normaliser]
+    D --> E[Hybrid retrieval over knowledge base]
+    E --> F{Exact match in KB?}
+    F -- No --> G[Live web discovery: search, fetch, extract]
+    F -- Yes --> H
+    G --> H[Match classifier & evidence evaluator]
+    H --> I[Grounded recipe generation]
+    I --> J[Arithmetic & timing validator]
+    J --> K[Personalised recipe]
+    K --> L[Pour timer]
+    L --> M[Sensory feedback]
+    M --> N[Feedback analyser]
+    N -->|Suggested adjustment| K
 ```
 
+A few design choices worth knowing:
+
+- **Live discovery is explicit.** The LLM is never assumed to have web access. A search provider returns URLs, pages are fetched (respecting `robots.txt`, skipping paywalls), and only then are recipes extracted. Search snippets are never treated as recipes.
+- **Nothing is filled in.** A fetched page counts as a recipe only if it states a dose and a water quantity. Values the page does not state stay empty, and numbers reported by the LLM are rejected unless they appear in the page text.
+- **Web content is untrusted.** Fetched text is sanitised for prompt-injection patterns and passed to the model as data, not instructions.
+- **Rules where rules are enough.** Arithmetic, timing checks, grinder settings, match classification and feedback diagnosis are plain code. If the LLM is unavailable or returns an inconsistent recipe, a rule-based recipe is used and labelled as such.
+- **Search failure is not "nothing found".** The UI distinguishes live search being unconfigured, failing, finding pages it could not read, and finding no recipes.
+
+More detail: [`architecture.md`](architecture.md), [`implementation.md`](implementation.md), [`token_optimisation_strategy.md`](token_optimisation_strategy.md), and the original brief in [`problemstatement.md`](problemstatement.md).
+
 ---
 
-## ⚡ Token Optimisation Strategy
-
-BrewWise is engineered for extreme cost efficiency:
-1. **Gemini 2.5 Flash by Default**: ~90% cost reduction compared to legacy frontier LLMs.
-2. **Compact Schemas**: Truncates payload keys (`v`, `c`, `d`, `w`, `ps`), saving >25% prompt & completion tokens.
-3. **Single-Call Pipeline**: Merges evidence evaluation, recipe synthesis, parameter explanation, and troubleshooting into **1 LLM call**.
-4. **Deterministic Enforcement**: Math, ratios, timings, and grinder click mappings are executed in Python/TypeScript code, consuming **0 LLM tokens**.
-5. **Core Scan Budget Gate**: Strict CI test (`tests/test_token_budget.py`) asserts core scans never exceed **2 LLM calls** and stay within **2,600 output tokens**.
-
----
-
-## 🚀 Quick Start
+## Quick start
 
 ### Prerequisites
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) (fast Python package manager)
-- Node.js 20+ & npm
-- Google Gemini API Key ([get one free](https://aistudio.google.com/apikey))
 
-### 1. Local Setup
+- Python 3.11+ and [uv](https://github.com/astral-sh/uv)
+- Node.js 20+ and npm
+- A Google Gemini API key ([get one](https://aistudio.google.com/apikey))
+- Optional: a [Tavily](https://tavily.com) API key for live web search
 
-#### Backend
+### Backend
+
 ```bash
-# Create virtual environment and install dependencies
 uv venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
 
-# Set environment variables
 cp .env.example .env
-# Edit .env and paste your Gemini API key into GOOGLE_API_KEY=
+# Edit .env: set GOOGLE_API_KEY, and optionally SEARCH_PROVIDER + TAVILY_API_KEY
 
-# Start the FastAPI server
 uvicorn brewwise.main:app --reload --port 8000
 ```
-Backend API will be accessible at `http://localhost:8000` with interactive Swagger docs at `http://localhost:8000/docs`.
 
-#### Frontend
+The API runs at `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`. On first start it creates a SQLite database and loads the equipment catalogue and curated recipes.
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:3000` in your browser.
 
----
+Open `http://localhost:3000`. The dev server proxies `/api` to the backend on port 8000.
 
-### 2. Docker Compose (Full Stack)
+### Docker Compose
 
-To run the complete production-ready stack (FastAPI backend, React frontend, PostgreSQL, Redis, MinIO):
+Runs the backend and frontend with PostgreSQL, Redis and MinIO:
 
 ```bash
-# Copy and configure environment
-cp .env.example .env
-# Edit .env and set GOOGLE_API_KEY
-
+cp .env.example .env   # set GOOGLE_API_KEY
 docker compose up --build
 ```
-- **Web App**: `http://localhost:3000`
-- **Backend API**: `http://localhost:8000`
-- **MinIO Console**: `http://localhost:9001` (user: `minioadmin`, pass: `minioadmin`)
+
+- Web app: `http://localhost:3000`
+- Backend API: `http://localhost:8000`
+- MinIO console: `http://localhost:9001` (`minioadmin` / `minioadmin`)
 
 ---
 
-## 🔧 Environment Variables
+## Configuration
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `GOOGLE_API_KEY` | **Yes** | — | Google Gemini API key for vision, LLM, and embeddings |
-| `SECRET_KEY` | Recommended | auto-generated | JWT signing secret (change in production) |
-| `DATABASE_URL` | No | `sqlite+aiosqlite:///./brewwise.db` | Database connection string |
-| `LLM_MODEL` | No | `gemini-2.5-flash` | Gemini model for recipe generation |
-| `EMBEDDING_MODEL` | No | `gemini-embedding-001` | Embedding model for semantic search |
-| `SEARCH_PROVIDER` | No | `none` | Live web search provider: `tavily` (needs `TAVILY_API_KEY`), `google` (needs `SEARCH_API_KEY` + `GOOGLE_SEARCH_CX`), or `none`. Without a configured provider the UI states that live search is not configured and only the local knowledge base is used — search results are never simulated. |
-| `SEARCH_API_KEY` | For live search | — | Google Custom Search or Tavily API key |
-| `GOOGLE_SEARCH_CX` | For Google search | — | Google Custom Search Engine ID |
-| `TAVILY_API_KEY` | For Tavily search | — | Tavily API key |
-| `REDIS_URL` | No | `redis://localhost:6379/0` | Redis URL (falls back to in-memory if unavailable) |
-| `STORAGE_PROVIDER` | No | `local` | Storage backend: `local` or `s3` |
-| `LOG_LEVEL` | No | `INFO` | Logging level |
+All settings are environment variables, read from `.env` locally. See [`.env.example`](.env.example) for the full list.
 
-See [`.env.example`](.env.example) for all available options.
+| Variable | Default | Description |
+|---|---|---|
+| `GOOGLE_API_KEY` | — | **Required.** Gemini key used for bag scanning, recipe generation and embeddings. Without it, scanning returns an error and recipes are rule-based. |
+| `SEARCH_PROVIDER` | `none` | Live web search: `tavily`, `google`, or `none`. With `none` (or a missing key) the app uses the knowledge base only and says so in the UI. |
+| `TAVILY_API_KEY` | — | Required when `SEARCH_PROVIDER=tavily`. |
+| `SEARCH_API_KEY`, `GOOGLE_SEARCH_CX` | — | Both required when `SEARCH_PROVIDER=google` (Programmable Search key and engine ID). |
+| `LLM_MODEL` | `gemini-2.5-flash` | Model for vision and recipe generation. |
+| `EMBEDDING_MODEL` | `gemini-embedding-001` | Model for semantic search. |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./brewwise.db` | Async SQLAlchemy URL. PostgreSQL is supported via `asyncpg`. |
+| `REDIS_URL` | `redis://localhost:6379/0` | Cache. Falls back to an in-memory cache if Redis is unreachable. |
+| `SECRET_KEY` | insecure dev value | JWT signing secret. **Set your own in production.** |
+| `CORS_ORIGINS` | localhost ports | Comma-separated list of allowed frontend origins. |
+| `MAX_UPLOAD_SIZE_MB` | `10` | Upload size limit for bag photos (JPEG, PNG or WebP). |
+| `LIVE_DISCOVERY_ENABLED` | `true` | Master switch for live web search. |
+| `LIVE_DISCOVERY_PERSIST` | `true` | Save recipes found online into the knowledge base. |
+| `LIVE_DISCOVERY_TOTAL_TIMEOUT` | `15` | Seconds allowed for one live search, end to end. |
+| `LIVE_DISCOVERY_MAX_URLS` | `5` | Pages fetched per search. |
+| `LIVE_DISCOVERY_RATE_LIMIT` | `10` | Outbound searches allowed per minute. |
+| `VISION_PROVIDER` | `gemini` | Set to `mock` only for offline UI demos: it returns one fixed sample profile for every image. |
+
+The frontend takes one build-time variable, `VITE_API_URL` (the backend's URL). It is only needed when the frontend and backend are hosted separately.
 
 ---
 
-## 📡 API Reference
+## API reference
+
+All routes are under `/api/v1`. Full interactive documentation is at `/docs` (Swagger) and `/redoc`.
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/v1/health` | `GET` | Health status and uptime |
-| `/api/v1/scan` | `POST` | Upload coffee bag image for vision extraction |
-| `/api/v1/recipes/search` | `POST` | Search curated and live recipes for a coffee profile |
-| `/api/v1/recipes/generate` | `POST` | Generate dialled-in grounded recipe |
-| `/api/v1/equipment/drippers` | `GET` | List 10 supported dripper profiles & techniques |
-| `/api/v1/equipment/grinders` | `GET` | List 25 supported grinders & pour-over click ranges |
-| `/api/v1/equipment/profiles` | `GET/POST`| Manage saved user equipment presets |
-| `/api/v1/auth/register` | `POST` | Create a new user account |
-| `/api/v1/auth/login` | `POST` | Authenticate and obtain JWT access token |
-| `/api/v1/brews` | `GET/POST`| Log an extraction and receive deterministic barista diagnosis |
-| `/api/v1/brews/{id}/feedback` | `POST` | Update cup sensory sliders and recalculate adjustments |
-
-Full interactive documentation is available at `/docs` (Swagger) and `/redoc` when the backend is running.
+| `/health` | `GET` | Health check |
+| `/scan` | `POST` | Upload a bag photo; returns the extracted coffee profile |
+| `/profiles` | `POST` | Create a profile from typed-in details (no photo) |
+| `/profiles/{id}` | `GET`, `PUT` | Read or correct a coffee profile |
+| `/recipes/search` | `POST` | Knowledge-base and live-web search for a profile; returns evidence with match types |
+| `/recipes/generate` | `POST` | Generate a personalised recipe for a profile and equipment |
+| `/recipes/{id}` | `GET` | Fetch a saved recipe |
+| `/equipment/drippers`, `/equipment/grinders` | `GET` | Equipment catalogue |
+| `/equipment/grind-setting` | `GET` | Grinder-specific setting for a relative grind size |
+| `/equipment/profiles` | `GET`, `POST` | Saved equipment presets |
+| `/equipment/profiles/{id}` | `PUT` | Update a preset |
+| `/auth/register`, `/auth/login`, `/auth/me` | `POST`, `POST`, `GET` | Optional accounts (JWT) |
+| `/brews` | `GET`, `POST` | Brew history; logging a brew returns a diagnosis |
+| `/brews/{id}` | `GET` | One brew log |
+| `/brews/{id}/feedback` | `POST` | Update feedback and recalculate the suggested adjustment |
 
 ---
 
-## 🧪 Testing & Quality Gates
-
-The test suite covers unit tests, integration pipelines, token budget gates, and a 30-sample specialty coffee benchmark:
+## Testing
 
 ```bash
-# Run complete test suite (41 tests across 10 modules)
-uv run pytest -v
-
-# Run frontend typecheck and production bundle build
-cd frontend && npm run build
+uv run pytest -v                 # 56 backend tests
+cd frontend && npm run build     # type-check and production build
 ```
 
-### Test Modules
-| Module | Tests | Coverage |
+If `.env` contains a real `GOOGLE_API_KEY`, the integration tests that generate recipes call Gemini; expect the suite to take around 30 seconds instead of 2. Tests use the database configured in `DATABASE_URL`.
+
+| Module | Tests | Covers |
 |---|---|---|
-| `test_phase4_personalisation.py` | 9 | Brew logging, sensory feedback, equipment profiles |
-| `test_phase3_discovery.py` | 7 | Live web discovery, robots.txt, injection filtering |
-| `test_phase2_retrieval.py` | 6 | Vector embeddings, hybrid retrieval, RRF ranking |
-| `test_normaliser.py` | 5 | Identity normalisation, canonical mapping |
-| `test_evaluation_benchmark.py` | 4 | 30-sample global coffee evaluation dataset |
-| `test_api_endpoints.py` | 3 | REST API endpoint contracts |
-| `test_recipe_validator.py` | 3 | Arithmetic validation, pour schedule integrity |
-| `test_token_budget.py` | 2 | ≤2 LLM calls, ≤2600 output tokens per scan |
-| `test_schemas_and_compact.py` | 1 | Schema serialization & compact format |
-| `test_search_endpoint.py` | 1 | Search endpoint integration |
+| `test_integrity_guards.py` | 14 | Identity matching, no-fabrication rules for live extraction, recipe labelling, timing validation, upload type checks |
+| `test_phase4_personalisation.py` | 9 | Brew logging, feedback diagnosis, equipment profiles |
+| `test_phase3_discovery.py` | 7 | Live discovery outcomes, robots/paywall handling, injection filtering |
+| `test_phase2_retrieval.py` | 6 | Embeddings, hybrid retrieval, match classification |
+| `test_normaliser.py` | 5 | Roaster, process and roast normalisation |
+| `test_api_endpoints.py` | 4 | Endpoint contracts, manual profile entry |
+| `test_evaluation_benchmark.py` | 4 | 30-coffee evaluation dataset |
+| `test_recipe_validator.py` | 3 | Recipe arithmetic |
+| `test_token_budget.py` | 2 | LLM call and output-token budget per scan |
+| `test_schemas_and_compact.py` | 1 | Compact extraction schema |
+| `test_search_endpoint.py` | 1 | Search-then-generate flow |
 
-### Automated CI Pipeline
-A GitHub Actions workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
-- Backend: Python 3.11 + `uv run pytest -v`
-- Frontend: Node.js 20 + `tsc -b && vite build` (typecheck + production bundle)
+**Evaluation dataset.** [`data/evaluation_dataset.json`](data/evaluation_dataset.json) holds 30 coffees spanning origins, processes and roast levels. `test_evaluation_benchmark.py` runs normalisation, query building, match classification and recipe validation across all of them.
 
----
-
-## 🚀 Cloud Deployment
-
-### Option A: Render (Free Tier — One Click)
-
-BrewWise includes a [`render.yaml`](render.yaml) Blueprint for free hosting:
-
-1. Push your repository to GitHub.
-2. Go to [Render Dashboard → Blueprints](https://dashboard.render.com/blueprints).
-3. Connect your GitHub repository. Render reads `render.yaml` and provisions:
-   - **`brewwise-backend`** — Free Web Service (Docker, health check at `/api/v1/health`)
-   - **`brewwise-frontend`** — Free Static Site (SPA rewrites, auto-connected `VITE_API_URL`)
-4. In the Render prompt, fill in your `GOOGLE_API_KEY`.
-5. Click **Apply** — Render builds and deploys both services automatically.
-
-### Option B: Vercel (Frontend) + Render (Backend)
-
-For faster frontend CDN and edge caching:
-
-1. Deploy the backend on Render (steps above).
-2. Import your repo into [Vercel](https://vercel.com):
-   - **Root Directory**: `frontend`
-   - **Framework Preset**: Vite
-3. Add one environment variable in Vercel Settings → Environment Variables:
-   - `VITE_API_URL` = `https://brewwise-backend.onrender.com` (your Render backend URL)
-4. Deploy. Vercel handles SPA routing via [`frontend/vercel.json`](frontend/vercel.json).
-
-### Option C: Railway
-
-A [`railway.json`](railway.json) is included for Railway deployments. Connect your repo, set `GOOGLE_API_KEY`, and deploy.
+**CI.** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the backend tests and the frontend build on every push and pull request to `main`.
 
 ---
 
-## 📋 Project Structure
+## Deployment
+
+### Render (backend + frontend)
+
+[`render.yaml`](render.yaml) is a Blueprint that provisions both services on the free tier.
+
+1. In the [Render dashboard](https://dashboard.render.com/blueprints), create a Blueprint from this repository.
+2. When prompted, enter `GOOGLE_API_KEY`. To enable live web search, also enter `SEARCH_PROVIDER` (`tavily`) and `TAVILY_API_KEY`.
+3. Apply. Render builds `brewwise-backend` (Docker) and `brewwise-frontend` (static site), and wires `VITE_API_URL` between them.
+
+### Vercel (frontend) + Render (backend)
+
+1. Deploy the backend on Render as above.
+2. Import the repository into [Vercel](https://vercel.com) with **Root Directory** `frontend` and the **Vite** preset.
+3. Set `VITE_API_URL` to your Render backend URL, then deploy. [`frontend/vercel.json`](frontend/vercel.json) handles client-side routing.
+
+API keys belong on the backend only. The frontend never needs `GOOGLE_API_KEY` or a search key.
+
+### Railway
+
+[`railway.json`](railway.json) builds the backend from `Dockerfile.backend`. Set the same environment variables as for Render.
+
+---
+
+## Project structure
 
 ```
 brewwise/
-├── api/v1/              # FastAPI route handlers (scan, recipes, equipment, auth, brews)
-├── config.py            # Pydantic settings (28 environment variables)
-├── db/                  # SQLAlchemy async models, session, migrations, seed data
-├── dependencies.py      # Dependency injection wiring
-├── models/              # ORM models (CoffeeProfile, RecipeSource, User, BrewLog)
-├── prompts/v1/          # Jinja2 prompt templates for Gemini
-├── providers/
-│   ├── cache/           # Redis with in-memory fallback
-│   ├── embeddings/      # Gemini embedding provider (gemini-embedding-001)
-│   ├── llm/             # Gemini LLM provider
-│   ├── search/          # Google Custom Search, Tavily, Mock
-│   └── storage/         # Local filesystem storage
-├── schemas/             # Pydantic request/response schemas
+├── api/v1/          # Route handlers: scan, profiles & recipes, equipment, auth, brews
+├── config.py        # Settings (environment variables)
+├── dependencies.py  # Provider wiring
+├── db/              # Session setup and equipment seed data
+├── models/          # SQLAlchemy models
+├── schemas/         # Pydantic request/response schemas
+├── prompts/v1/      # Versioned Jinja2 prompt templates
+├── providers/       # Swappable integrations
+│   ├── llm/         #   Gemini
+│   ├── embeddings/  #   Gemini embeddings
+│   ├── search/      #   Tavily, Google Programmable Search
+│   ├── cache/       #   Redis with in-memory fallback
+│   └── storage/     #   Local filesystem
 └── services/
-    ├── discovery/       # Live web discovery orchestrator
-    ├── equipment/       # 25 grinders + 10 drippers catalogue & guides
-    ├── identity/        # Coffee normalisation & confidence scoring
-    ├── ingestion/       # RAG pipeline: parsing, indexing, embedding
-    ├── retrieval/       # Hybrid retriever (dense + BM25 + RRF)
-    ├── synthesis/       # Recipe generator & arithmetic validator
-    └── vision/          # Gemini Vision extraction & mock provider
+    ├── vision/      # Bag extraction
+    ├── identity/    # Normalisation and confidence
+    ├── ingestion/   # Parsing, deduplication, indexing
+    ├── retrieval/   # Hybrid retriever, match classifier, evidence evaluator
+    ├── discovery/   # Live web search, page fetching, recipe extraction
+    ├── synthesis/   # Recipe generator, validator, provenance check
+    ├── equipment/   # Grinder and dripper catalogues
+    └── feedback/    # Post-brew diagnosis
 
-frontend/                # React 19 + TypeScript + Vite 8
-├── src/
-│   ├── components/      # UI components (Scanner, Timer, BrewLog, Equipment)
-│   ├── pages/           # Route pages
-│   ├── api.ts           # Typed API client
-│   └── types.ts         # Shared TypeScript interfaces
-├── vercel.json          # Vercel SPA rewrite config
-└── vite.config.ts       # Vite dev server config (port 3000)
+frontend/            # React 19 + TypeScript + Vite
+└── src/
+    ├── pages/       # Home, ProfileEdit, RecipeView, BrewHistory, Settings
+    ├── components/  # ImageCapture, BrewTimer, FeedbackForm, EvidencePanel, ...
+    ├── api.ts       # Typed API client
+    └── types.ts     # Shared interfaces
 
-tests/                   # 41 tests across 10 modules
-data/                    # 30-sample evaluation dataset + curated recipes
+data/                # Curated recipes and the evaluation dataset
+scripts/             # Knowledge-base ingestion
+tests/               # Backend test suite
 ```
 
 ---
 
-## 📄 License
+## Known limitations
 
-MIT License. See [LICENSE](LICENSE) for details.
+- **Live search depends on what sites allow.** Pages that block automated access, rate-limit, or sit behind a login are skipped, so a coffee with published recipes can still come back with none found.
+- **The knowledge base is small.** 54 curated recipes; coffees outside it rely on live search or a generated starting recipe.
+- **Recipes are starting points.** Expected flavour is a prediction, and grind settings vary between individual grinders.
+- **Free-tier hosting is not persistent.** With SQLite on Render's free tier, saved profiles, recipes and brew history are lost when the service redeploys. Use PostgreSQL for anything you want to keep.
+- **Feedback is per brew.** The diagnosis looks at one brew at a time; it does not yet take earlier attempts for the same coffee into account.
+- **No per-user rate limiting** on the API.
 
-Built for the specialty coffee community with passion for precision brewing. ☕
+---
+
+## License
+
+Released under the [MIT License](LICENSE).

@@ -74,7 +74,7 @@ def normalise_process_method(process: Optional[str]) -> Optional[str]:
     if not text:
         return None
     key = text.lower()
-    return PROCESS_MAP.get(key, text.lower().replace(" ", "_"))
+    return PROCESS_MAP.get(key, re.sub(r"[^a-z0-9]+", "_", key).strip("_"))
 
 
 def normalise_roast_level(roast: Optional[str]) -> Optional[str]:
@@ -82,7 +82,7 @@ def normalise_roast_level(roast: Optional[str]) -> Optional[str]:
     if not text:
         return None
     key = text.lower()
-    return ROAST_MAP.get(key, text.lower().replace(" ", "_"))
+    return ROAST_MAP.get(key, re.sub(r"[^a-z0-9]+", "_", key).strip("_"))
 
 
 def normalise_profile(draft: CoffeeProfileDraft) -> CoffeeProfileDraft:
