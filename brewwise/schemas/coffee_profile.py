@@ -81,6 +81,7 @@ class CoffeeProfileDraft(BaseModel):
 class CoffeeProfileUpdate(BaseModel):
     brand: Optional[str] = None
     product_name: Optional[str] = None
+    estate: Optional[str] = None
     country: Optional[str] = None
     region: Optional[str] = None
     varietal: Optional[str] = None

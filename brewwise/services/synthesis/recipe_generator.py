@@ -190,7 +190,7 @@ def generate_baseline_recipe(
     expected = (
         f"Prediction, not a guarantee: the bag lists {notes}; this recipe aims for a clean, balanced cup that lets those notes show."
         if notes else
-        "Prediction, not a guarantee: a clean, balanced cup. No tasting notes were read from the bag."
+        "Prediction, not a guarantee: a clean, balanced cup. No tasting notes were provided for this coffee."
     )
 
     roast_phrase = f"{roast} roast" if roast_known else "unstated roast level"

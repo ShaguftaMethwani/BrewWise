@@ -5,6 +5,10 @@ import { getProfile, updateProfile, getDrippers, getGrinders, generateRecipe } f
 import type { CoffeeProfileDraft, EquipmentItem } from '../types';
 import { ConfidenceBadge } from '../components/ConfidenceBadge';
 
+// Typed-in profiles have nothing "extracted", so confidence badges are hidden for them
+const FieldBadge: React.FC<{ manual: boolean; confidence: number; source: string }> = ({ manual, confidence, source }) =>
+  manual ? null : <ConfidenceBadge confidence={confidence} source={source as any} />;
+
 export const ProfileEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -28,6 +32,7 @@ export const ProfileEdit: React.FC = () => {
   const [formData, setFormData] = useState({
     brand: '',
     product_name: '',
+    estate: '',
     country: '',
     region: '',
     varietal: '',
@@ -36,6 +41,9 @@ export const ProfileEdit: React.FC = () => {
     tasting_notes: '',
     altitude: '',
   });
+
+  const isManual = draft?.extraction_model === 'manual_entry';
+  const hasAnyDetail = Object.values(formData).some((v) => v.trim() !== '');
 
   useEffect(() => {
     async function loadData() {
@@ -61,6 +69,7 @@ export const ProfileEdit: React.FC = () => {
       setFormData({
         brand: draft.brand.value || '',
         product_name: draft.product_name.value || '',
+        estate: draft.estate.value || '',
         country: draft.country.value || '',
         region: draft.region.value || '',
         varietal: draft.varietal.value || '',
@@ -124,13 +133,15 @@ export const ProfileEdit: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
           <span style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Step 2 of 3 · Extraction Review
+            {isManual ? 'Step 2 of 3 · Coffee Details' : 'Step 2 of 3 · Extraction Review'}
           </span>
           <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-serif)', marginTop: '4px' }}>
-            Review Extracted Coffee Profile
+            {isManual ? 'Enter Your Coffee Details' : 'Review Extracted Coffee Profile'}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Verify the extracted bag data below. You can refine any field before generating your recipe.
+            {isManual
+              ? 'Fill in what you know. Leave anything you are unsure of blank — it is treated as unknown, not guessed.'
+              : 'Verify the extracted bag data below. You can refine any field before generating your recipe.'}
           </p>
         </div>
       </div>
@@ -157,7 +168,7 @@ export const ProfileEdit: React.FC = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ROASTER / BRAND</label>
-              <ConfidenceBadge confidence={draft.brand.confidence} source={draft.brand.source} />
+              <FieldBadge manual={isManual} confidence={draft.brand.confidence} source={draft.brand.source} />
             </div>
             <input
               type="text"
@@ -171,7 +182,7 @@ export const ProfileEdit: React.FC = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>COFFEE / PRODUCT NAME</label>
-              <ConfidenceBadge confidence={draft.product_name.confidence} source={draft.product_name.source} />
+              <FieldBadge manual={isManual} confidence={draft.product_name.confidence} source={draft.product_name.source} />
             </div>
             <input
               type="text"
@@ -184,8 +195,22 @@ export const ProfileEdit: React.FC = () => {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ESTATE / FARM</label>
+              <FieldBadge manual={isManual} confidence={draft.estate.confidence} source={draft.estate.source} />
+            </div>
+            <input
+              type="text"
+              value={formData.estate}
+              onChange={(e) => handleFieldChange('estate', e.target.value)}
+              placeholder="e.g. Attikan Estate, Riverdale"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ORIGIN COUNTRY</label>
-              <ConfidenceBadge confidence={draft.country.confidence} source={draft.country.source} />
+              <FieldBadge manual={isManual} confidence={draft.country.confidence} source={draft.country.source} />
             </div>
             <input
               type="text"
@@ -199,13 +224,14 @@ export const ProfileEdit: React.FC = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>PROCESS METHOD</label>
-              <ConfidenceBadge confidence={draft.process.confidence} source={draft.process.source} />
+              <FieldBadge manual={isManual} confidence={draft.process.confidence} source={draft.process.source} />
             </div>
             <select
               value={formData.process}
               onChange={(e) => handleFieldChange('process', e.target.value)}
               style={{ width: '100%' }}
             >
+              <option value="">Not stated / unknown</option>
               <option value="washed">Washed</option>
               <option value="natural">Natural</option>
               <option value="honey">Honey</option>
@@ -219,13 +245,14 @@ export const ProfileEdit: React.FC = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ROAST LEVEL</label>
-              <ConfidenceBadge confidence={draft.roast_level.confidence} source={draft.roast_level.source} />
+              <FieldBadge manual={isManual} confidence={draft.roast_level.confidence} source={draft.roast_level.source} />
             </div>
             <select
               value={formData.roast_level}
               onChange={(e) => handleFieldChange('roast_level', e.target.value)}
               style={{ width: '100%' }}
             >
+              <option value="">Not stated / unknown</option>
               <option value="light">Light Roast</option>
               <option value="medium_light">Medium-Light</option>
               <option value="medium">Medium</option>
@@ -238,7 +265,7 @@ export const ProfileEdit: React.FC = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>VARIETAL</label>
-              <ConfidenceBadge confidence={draft.varietal.confidence} source={draft.varietal.source} />
+              <FieldBadge manual={isManual} confidence={draft.varietal.confidence} source={draft.varietal.source} />
             </div>
             <input
               type="text"
@@ -253,7 +280,7 @@ export const ProfileEdit: React.FC = () => {
         <div style={{ marginTop: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>TASTING NOTES</label>
-            <ConfidenceBadge confidence={draft.tasting_notes.confidence} source={draft.tasting_notes.source} />
+            <FieldBadge manual={isManual} confidence={draft.tasting_notes.confidence} source={draft.tasting_notes.source} />
           </div>
           <input
             type="text"
@@ -386,7 +413,7 @@ export const ProfileEdit: React.FC = () => {
       <div style={{ textAlign: 'center' }}>
         <button
           onClick={handleGenerate}
-          disabled={generating}
+          disabled={generating || (isManual && !hasAnyDetail)}
           className="btn-pastel-sage"
           style={{
             display: 'inline-flex',
@@ -396,7 +423,8 @@ export const ProfileEdit: React.FC = () => {
             borderRadius: 'var(--radius-sm)',
             fontWeight: 700,
             fontSize: '1.05rem',
-            cursor: generating ? 'not-allowed' : 'pointer',
+            cursor: generating || (isManual && !hasAnyDetail) ? 'not-allowed' : 'pointer',
+            opacity: isManual && !hasAnyDetail ? 0.55 : 1,
           }}
         >
           {generating ? (
@@ -412,6 +440,11 @@ export const ProfileEdit: React.FC = () => {
             </>
           )}
         </button>
+        {isManual && !hasAnyDetail && (
+          <p style={{ marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Enter at least one coffee detail above to generate a recipe.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -189,6 +189,19 @@ export async function scanCoffeeBag(file: File): Promise<CoffeeProfileDraft> {
   return res.json();
 }
 
+export async function createManualProfile(): Promise<CoffeeProfileDraft> {
+  const res = await fetch(`${API_BASE}/profiles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Could not start manual entry');
+  }
+  return res.json();
+}
+
 export async function getProfile(profileId: string): Promise<CoffeeProfileDraft> {
   const res = await fetch(`${API_BASE}/profiles/${profileId}`);
   if (!res.ok) {

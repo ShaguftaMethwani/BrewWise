@@ -78,3 +78,32 @@ async def test_update_coffee_profile():
     assert data["process"]["value"] == "Washed"
     assert data["process"]["source"] == "user_override"
 
+
+
+@pytest.mark.asyncio
+async def test_manual_profile_entry_flow():
+    """A profile can be typed in without a photo; blanks stay unknown and edits are marked user-entered."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        created = await ac.post("/api/v1/profiles", json={})
+        assert created.status_code == 200
+        draft = created.json()
+        assert draft["extraction_model"] == "manual_entry"
+        assert draft["image_url"] is None
+        assert draft["brand"]["value"] is None and draft["brand"]["source"] == "unknown"
+
+        updated = await ac.put(
+            f"/api/v1/profiles/{draft['id']}",
+            json={"brand": "Blue Tokai", "estate": "Attikan Estate", "process": "washed", "roast_level": "", "varietal": "  "},
+        )
+        assert updated.status_code == 200
+        data = updated.json()
+        assert data["brand"] == {"value": "Blue Tokai", "confidence": 1.0, "source": "user_override", "raw_text": None}
+        assert data["estate"]["value"] == "Attikan Estate"
+        assert data["roast_level"]["value"] is None and data["roast_level"]["source"] == "unknown"
+        assert data["varietal"]["value"] is None
+
+        recipe = await ac.post("/api/v1/recipes/generate", json={"coffee_profile_id": draft["id"], "dripper": "Hario V60"})
+        assert recipe.status_code == 200
+        body = recipe.json()
+        assert abs(sum(p["water_g"] for p in body["pour_schedule"]) - body["water_g"]) <= 1.0

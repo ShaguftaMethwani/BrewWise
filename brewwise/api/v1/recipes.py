@@ -21,6 +21,7 @@ from brewwise.schemas.recipe import (
     Adaptation,
 )
 from brewwise.config import settings
+from brewwise.services.identity.normaliser import normalise_profile
 from brewwise.providers.cache.base import CacheProvider
 from brewwise.dependencies import (
     get_cache_provider,
@@ -71,6 +72,44 @@ async def get_coffee_profile(profile_id: str, db: AsyncSession = Depends(get_db)
     )
 
 
+@router.post("/profiles", response_model=CoffeeProfileDraft)
+async def create_manual_profile(
+    data: Optional[CoffeeProfileUpdate] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Creates a coffee profile from details the user types in, with no photo involved.
+    Every supplied field is recorded as user-entered; everything else stays unknown."""
+    supplied = {
+        k: v.strip() for k, v in (data.model_dump(exclude_unset=True) if data else {}).items()
+        if isinstance(v, str) and v.strip()
+    }
+    draft = CoffeeProfileDraft(
+        extraction_model="manual_entry",
+        **{k: ExtractedField(value=v, confidence=1.0, source="user_override") for k, v in supplied.items()}
+    )
+    draft = normalise_profile(draft)
+
+    db.add(CoffeeProfileModel(
+        id=draft.id,
+        brand=draft.brand.value,
+        product_name=draft.product_name.value,
+        country=draft.country.value,
+        region=draft.region.value,
+        estate=draft.estate.value,
+        varietal=draft.varietal.value,
+        process=draft.process.value,
+        roast_level=draft.roast_level.value,
+        roast_date=draft.roast_date.value,
+        tasting_notes=draft.tasting_notes.value,
+        altitude=draft.altitude.value,
+        image_url=None,
+        confidence=1.0 if supplied else 0.0,
+        raw_metadata=draft.model_dump(mode="json")
+    ))
+    await db.commit()
+    return draft
+
+
 @router.put("/profiles/{profile_id}", response_model=CoffeeProfileDraft)
 async def update_coffee_profile(
     profile_id: str,
@@ -82,7 +121,11 @@ async def update_coffee_profile(
     if not profile:
         raise HTTPException(status_code=404, detail="Coffee profile not found")
 
-    update_data = update.model_dump(exclude_unset=True)
+    # A blank value means "not known": it is stored as unknown, never as an empty user-confirmed value
+    update_data = {
+        field: (val.strip() or None) if isinstance(val, str) else val
+        for field, val in update.model_dump(exclude_unset=True).items()
+    }
     for field, val in update_data.items():
         if hasattr(profile, field):
             setattr(profile, field, val)
@@ -90,11 +133,12 @@ async def update_coffee_profile(
     # Update raw_metadata if present
     draft_dict = dict(profile.raw_metadata) if profile.raw_metadata else {}
     for field, val in update_data.items():
-        if field in draft_dict and isinstance(draft_dict[field], dict):
-            draft_dict[field]["value"] = val
-            draft_dict[field]["source"] = "user_override"
-            draft_dict[field]["confidence"] = 1.0
-        elif val is not None:
+        existing = draft_dict.get(field) if isinstance(draft_dict.get(field), dict) else None
+        if existing and existing.get("value") == val:
+            continue  # unchanged: keep the original source (e.g. read from the bag) and confidence
+        if val is None:
+            draft_dict[field] = {"value": None, "source": "unknown", "confidence": 0.0}
+        else:
             draft_dict[field] = {"value": val, "source": "user_override", "confidence": 1.0}
 
     profile.raw_metadata = draft_dict

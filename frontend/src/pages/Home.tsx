@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Eye, ShieldCheck, Compass } from 'lucide-react';
+import { Sparkles, Eye, ShieldCheck, Compass, PencilLine } from 'lucide-react';
+import { createManualProfile } from '../api';
 import { ImageCapture } from '../components/ImageCapture';
 import type { CoffeeProfileDraft } from '../types';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
 
+  const [startingManual, setStartingManual] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
+
   const handleScanSuccess = (draft: CoffeeProfileDraft) => {
     navigate(`/profile/${draft.id}`, { state: { draft } });
+  };
+
+  const handleManualEntry = async () => {
+    setStartingManual(true);
+    setManualError(null);
+    try {
+      const draft = await createManualProfile();
+      navigate(`/profile/${draft.id}`, { state: { draft } });
+    } catch (err: any) {
+      setManualError(err.message || 'Could not start manual entry');
+      setStartingManual(false);
+    }
   };
 
   return (
@@ -58,6 +74,47 @@ export const Home: React.FC = () => {
 
       <div style={{ marginBottom: '60px' }}>
         <ImageCapture onScanSuccess={handleScanSuccess} />
+
+        <div style={{ maxWidth: '520px', margin: '22px auto 0', textAlign: 'center' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            color: 'var(--text-muted)',
+            fontSize: '0.8rem',
+            marginBottom: '16px',
+          }}>
+            <span style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+            <span>or</span>
+            <span style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+          </div>
+
+          <button
+            onClick={handleManualEntry}
+            disabled={startingManual}
+            className="btn-pastel-sky"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 22px',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+            }}
+          >
+            <PencilLine size={18} />
+            {startingManual ? 'Opening…' : 'Type coffee details instead'}
+          </button>
+          <p style={{ marginTop: '10px', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+            No bag to hand? Enter the roaster, origin, process and roast yourself.
+          </p>
+          {manualError && (
+            <p role="alert" style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--badge-low)' }}>
+              {manualError}
+            </p>
+          )}
+        </div>
       </div>
 
       <div style={{

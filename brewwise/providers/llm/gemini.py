@@ -48,11 +48,24 @@ class GeminiLLMProvider(LLMProvider):
             raise ValueError("Gemini API key is not configured. Please set GOOGLE_API_KEY.")
 
         chosen_model = model or self.default_model
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            response_mime_type="application/json",
-            response_schema=response_schema
-        )
+        schema_json = json.dumps(response_schema.model_json_schema())
+        if "additionalProperties" in schema_json:
+            # The Gemini Developer API rejects schemas with free-form maps (Dict[str, ...]).
+            # Ask for JSON without a server-side schema and describe the schema in the prompt;
+            # the response is still validated against the Pydantic model below.
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json"
+            )
+            prompt = (
+                f"{prompt}\n\nReturn a single JSON object that conforms to this JSON Schema:\n{schema_json}"
+            )
+        else:
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                response_schema=response_schema
+            )
         response = await self.client.aio.models.generate_content(
             model=chosen_model,
             contents=prompt,
