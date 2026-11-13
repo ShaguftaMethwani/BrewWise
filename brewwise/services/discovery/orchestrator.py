@@ -1,6 +1,9 @@
 import asyncio
 import hashlib
+import json
 import logging
+import time
+from collections import deque
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +41,36 @@ class LiveDiscoveryResult(BaseModel):
     errors: List[str] = Field(default_factory=list)
 
 
+NO_RESULTS_MESSAGE = (
+    "No matching recipes were found in online sources for this coffee. "
+    "This does not mean none exist — it means none were found in this search."
+)
+
+# Timestamps of recent outbound search calls, shared across requests (process-wide rate limit)
+_search_call_times: deque = deque()
+
+
+def _rate_limit_allows() -> bool:
+    now = time.monotonic()
+    while _search_call_times and now - _search_call_times[0] > 60:
+        _search_call_times.popleft()
+    if len(_search_call_times) >= settings.LIVE_DISCOVERY_RATE_LIMIT:
+        return False
+    _search_call_times.append(now)
+    return True
+
+
+def _join_unique(*parts: str) -> str:
+    """Joins query parts, dropping words already present (e.g. estate repeated in the product name)."""
+    seen, words = set(), []
+    for part in parts:
+        for word in (part or "").split():
+            if word.lower() not in seen:
+                seen.add(word.lower())
+                words.append(word)
+    return " ".join(words)
+
+
 class DiscoveryOrchestrator:
     def __init__(
         self,
@@ -46,11 +79,14 @@ class DiscoveryOrchestrator:
         recipe_extractor: Optional[LiveRecipeExtractor] = None,
         indexer: Optional[Indexer] = None,
         cache_provider: Optional[CacheProvider] = None,
-        embedding_provider: Optional[EmbeddingProvider] = None
+        embedding_provider: Optional[EmbeddingProvider] = None,
+        llm_provider=None
     ):
         self.search_provider = search_provider
         self.page_fetcher = page_fetcher or PageFetcher(timeout=settings.LIVE_DISCOVERY_PER_URL_TIMEOUT)
-        self.recipe_extractor = recipe_extractor or LiveRecipeExtractor(cache_provider=cache_provider)
+        self.recipe_extractor = recipe_extractor or LiveRecipeExtractor(
+            llm_provider=llm_provider, cache_provider=cache_provider, model_name=settings.LLM_MODEL
+        )
         self.indexer = indexer or (Indexer(embedding_provider=embedding_provider) if embedding_provider else None)
         self.cache_provider = cache_provider
         self.total_timeout = settings.LIVE_DISCOVERY_TOTAL_TIMEOUT
@@ -72,11 +108,15 @@ class DiscoveryOrchestrator:
         if not settings.LIVE_DISCOVERY_ENABLED or not self.search_provider:
             return LiveDiscoveryResult(
                 search_status="disabled",
-                message="Online search is not configured. Results are from the local knowledge base."
+                message=(
+                    "Live web search is not configured, so no online sources were checked. "
+                    "Results are from the local knowledge base only."
+                )
             )
 
-        # 1. Skip rule: Check KB sufficiency (saves ~1,500 LLM tokens)
-        if kb_matches_count >= 3 and kb_top_score >= 0.85:
+        # 1. Skip rule: only when the KB already holds an exact match for this coffee
+        #    (a coffee that is not pre-indexed always triggers a live search)
+        if kb_matches_count >= 3 and kb_top_score >= settings.LIVE_DISCOVERY_SKIP_SCORE:
             logger.info(f"Skipping live discovery: KB already has {kb_matches_count} strong matches (top score {kb_top_score})")
             return LiveDiscoveryResult(
                 search_status="skipped_sufficient_kb",
@@ -90,8 +130,8 @@ class DiscoveryOrchestrator:
         process = profile.process.value or ""
         country = profile.country.value or ""
 
-        query_primary = f"{brand} {estate} {name} pour-over recipe".strip()
-        query_fallback = f"{estate or brand} {country} {process} V60 recipe".strip()
+        query_primary = _join_unique(brand, estate, name, process.replace("_", " "), "pour-over recipe")
+        query_fallback = _join_unique(estate or brand, country, process.replace("_", " "), "V60 brew guide")
 
         # Enforce total timeout budget
         try:
@@ -129,7 +169,6 @@ class DiscoveryOrchestrator:
             try:
                 cached_json = await self.cache_provider.get(cache_key)
                 if cached_json:
-                    import json
                     raw_items = json.loads(cached_json)
                     search_results = [SearchResult(**item) for item in raw_items]
             except Exception:
@@ -137,6 +176,12 @@ class DiscoveryOrchestrator:
 
         # Call SearchProvider if not cached
         if not search_results:
+            if not _rate_limit_allows():
+                return LiveDiscoveryResult(
+                    search_status="failed",
+                    message="Online recipe search is temporarily rate-limited. Results are based on the existing knowledge base only.",
+                    errors=["Search rate limit reached"]
+                )
             try:
                 search_results = await self.search_provider.search(
                     query=primary_query,
@@ -163,7 +208,6 @@ class DiscoveryOrchestrator:
             # Cache query results in Redis for 1 hour (3600 seconds)
             if search_results and self.cache_provider:
                 try:
-                    import json
                     dumped = json.dumps([r.model_dump() for r in search_results])
                     await self.cache_provider.set(cache_key, dumped, ttl_seconds=3600)
                 except Exception:
@@ -172,13 +216,15 @@ class DiscoveryOrchestrator:
         if not search_results:
             return LiveDiscoveryResult(
                 search_status="success",
-                message="No matching recipes were found in online sources for this coffee. This does not mean none exist — it means none were found in this search.",
+                message=NO_RESULTS_MESSAGE,
                 urls_attempted=0,
                 urls_yielded_recipes=0
             )
 
         # 3. Filter URLs: Skip URLs already indexed in database
-        candidate_urls = [r.url for r in search_results if r.url]
+        candidate_urls = list(dict.fromkeys(
+            r.url for r in search_results if r.url and r.url.startswith(("http://", "https://"))
+        ))
         existing_stmt = select(RecipeSourceModel.url).where(RecipeSourceModel.url.in_(candidate_urls))
         res = await db.execute(existing_stmt)
         already_indexed = set(res.scalars().all())
@@ -189,7 +235,7 @@ class DiscoveryOrchestrator:
             # All returned URLs were already present in the knowledge base
             return LiveDiscoveryResult(
                 search_status="skipped_sufficient_kb",
-                message="Found expert recipes in the BrewWise Knowledge Base",
+                message="Online search only returned pages that are already in the knowledge base.",
                 urls_attempted=len(candidate_urls),
                 urls_yielded_recipes=len(already_indexed)
             )
@@ -202,8 +248,11 @@ class DiscoveryOrchestrator:
 
         if not valid_pages:
             return LiveDiscoveryResult(
-                search_status="success",
-                message="No matching recipes were found in online sources for this coffee. This does not mean none exist — it means none were found in this search.",
+                search_status="partial",
+                message=(
+                    f"Online search found {len(urls_to_fetch)} candidate page(s), but none could be read "
+                    "(blocked, access-restricted, or timed out). No online recipes could be verified."
+                ),
                 urls_attempted=len(urls_to_fetch),
                 urls_yielded_recipes=0
             )
@@ -226,6 +275,8 @@ class DiscoveryOrchestrator:
                             water_temperature_c=disc.water_temperature_c,
                             grind_description=disc.grind_description,
                             instructions=disc.instructions,
+                            bloom_time_seconds=None,
+                            target_brew_time_seconds=None,
                             brand=disc.coffee_metadata.get("brand"),
                             estate=disc.coffee_metadata.get("estate"),
                             country=disc.coffee_metadata.get("country"),
@@ -252,7 +303,10 @@ class DiscoveryOrchestrator:
         if recipe_count > 0:
             msg = f"Found {recipe_count} recipe(s) from online sources"
         else:
-            msg = "No matching recipes were found in online sources for this coffee. This does not mean none exist — it means none were found in this search."
+            msg = (
+                f"Checked {len(valid_pages)} online page(s) but none contained a usable pour-over recipe. "
+                "This does not mean none exist — it means none were found in this search."
+            )
 
         return LiveDiscoveryResult(
             search_status="success",

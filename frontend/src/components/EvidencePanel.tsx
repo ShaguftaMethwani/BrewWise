@@ -124,7 +124,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
       {isExpanded && (
         <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Live Web Discovery Status Notification */}
-          {evidence.discovery_status && evidence.discovery_status !== 'disabled' && (
+          {evidence.discovery_status && (
             <div
               style={{
                 padding: '0.55rem 0.85rem',
@@ -158,13 +158,21 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
                   ? '⚡'
                   : evidence.discovery_status === 'success'
                   ? '🌐'
+                  : evidence.discovery_status === 'failed' || evidence.discovery_status === 'partial'
+                  ? '⚠️'
                   : 'ℹ️'}
               </span>
               <span>
                 {evidence.discovery_message ||
                   (evidence.discovery_status === 'skipped_sufficient_kb'
-                    ? 'Skipped web crawler: High confidence recipes verified in knowledge base.'
-                    : 'Inline web discovery completed.')}
+                    ? 'Live web search skipped: an exact match is already in the knowledge base.'
+                    : evidence.discovery_status === 'disabled'
+                    ? 'Live web search is not configured. Results are from the local knowledge base only.'
+                    : evidence.discovery_status === 'failed'
+                    ? 'Live web search was unavailable. Results are from the local knowledge base only.'
+                    : evidence.discovery_status === 'partial'
+                    ? 'Live web search did not complete. Results may be incomplete.'
+                    : 'Live web search completed.')}
               </span>
             </div>
           )}
@@ -270,7 +278,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
                   >
                     <div>
                       <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Dripper</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{r.dripper || 'V60'}</strong>
+                      <strong style={{ color: 'var(--text-primary)' }}>{r.dripper || 'Not stated'}</strong>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Dose / Water</span>
@@ -278,11 +286,11 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence, loading 
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Ratio</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{r.ratio || '1:16'}</strong>
+                      <strong style={{ color: 'var(--text-primary)' }}>{r.ratio || 'Not stated'}</strong>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Temperature</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{r.water_temperature_c}°C</strong>
+                      <strong style={{ color: 'var(--text-primary)' }}>{r.water_temperature_c ? `${r.water_temperature_c}°C` : 'Not stated'}</strong>
                     </div>
                   </div>
 

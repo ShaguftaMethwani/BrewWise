@@ -1,4 +1,5 @@
 import hashlib
+import os
 import json
 import logging
 from typing import Optional
@@ -45,15 +46,20 @@ class CoffeeBagExtractor:
                 except Exception as e:
                     logger.warning(f"Failed to deserialize cached profile: {e}")
 
-        # 3. Store image
-        storage_id = f"{sha256}_{filename}"
-        await self.storage_provider.upload(image_bytes, storage_id, content_type)
-        image_url = await self.storage_provider.get_url(storage_id)
-
-        # 4. Vision extraction
+        # 3. Vision extraction (before storing anything, so rejected uploads are not retained)
         if not self.vision_provider:
-            raise ValueError("No vision provider configured. Please set GOOGLE_API_KEY in your environment.")
+            raise ValueError(
+                "Image extraction is not configured. Set GOOGLE_API_KEY on the server to scan coffee bags, "
+                "or enter the coffee details manually."
+            )
         compact = await self.vision_provider.extract_coffee_profile(image_bytes, content_type)
+
+        # 4. Store image only for genuine coffee bags
+        storage_id = f"{sha256}_{os.path.basename(filename)}"
+        image_url = None
+        if compact.is_coffee_bag:
+            await self.storage_provider.upload(image_bytes, storage_id, content_type)
+            image_url = await self.storage_provider.get_url(storage_id)
 
         # 5. Inflate compact to full schema
         draft = CoffeeProfileDraft.from_compact(
@@ -67,7 +73,7 @@ class CoffeeBagExtractor:
         draft = normalise_profile(draft)
 
         # 7. Cache result (30 days TTL = 2592000s)
-        if self.cache_provider:
+        if self.cache_provider and draft.is_coffee_bag:
             try:
                 await self.cache_provider.set(cache_key, draft.model_dump_json(), ttl_seconds=2592000)
             except Exception as e:

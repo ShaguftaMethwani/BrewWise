@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: Optional[str] = Field(default=None, description="Google Gemini API key")
 
     # Search & Discovery
-    SEARCH_PROVIDER: str = Field(default="mock", description="Search provider (google, tavily, mock)")
+    SEARCH_PROVIDER: str = Field(default="none", description="Live web search provider: tavily, google, or none")
     SEARCH_API_KEY: Optional[str] = Field(default=None, description="Search API key")
     GOOGLE_SEARCH_CX: Optional[str] = Field(default=None, description="Google Custom Search Engine ID")
     TAVILY_API_KEY: Optional[str] = Field(default=None, description="Tavily API key")
@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     LIVE_DISCOVERY_PER_URL_TIMEOUT: float = Field(default=6.0, description="Per-URL fetch timeout in seconds")
     LIVE_DISCOVERY_RATE_LIMIT: int = Field(default=10, description="Max queries per minute")
     LIVE_DISCOVERY_MAX_URLS: int = Field(default=5, description="Max URLs to fetch per scan")
+    LIVE_DISCOVERY_SKIP_SCORE: float = Field(
+        default=0.92,
+        description="Skip live search only when the knowledge base already has a match at or above this score (exact match)"
+    )
+    EVIDENCE_CACHE_TTL_SECONDS: int = Field(default=600, description="How long a search result is reused between search and generate")
 
     # Security & Auth
     SECRET_KEY: str = Field(default="brewwise-insecure-secret-key-change-in-prod-xyz", description="JWT secret key")

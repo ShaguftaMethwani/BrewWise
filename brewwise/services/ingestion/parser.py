@@ -6,12 +6,12 @@ from brewwise.providers.llm.base import LLMProvider
 
 
 class ExtractedSourceRecipe(BaseModel):
-    dripper: str = Field(default="Hario V60")
+    dripper: Optional[str] = Field(default="Hario V60")
     dose_g: float = Field(default=15.0)
     water_g: float = Field(default=240.0)
-    ratio: str = Field(default="1:16")
-    water_temperature_c: int = Field(default=93)
-    grind_description: str = Field(default="Medium-fine")
+    ratio: Optional[str] = Field(default="1:16")
+    water_temperature_c: Optional[int] = Field(default=93)
+    grind_description: Optional[str] = Field(default="Medium-fine")
     bloom_water_g: Optional[float] = None
     bloom_time_seconds: Optional[int] = 45
     target_brew_time_seconds: Optional[int] = 180
@@ -26,6 +26,72 @@ class ExtractedSourceRecipe(BaseModel):
     roast_level: Optional[str] = None
     varietal: Optional[str] = None
     tasting_notes: Optional[str] = None
+
+
+_NUM = r"(\d{1,3}(?:\.\d)?)"
+_G = r"\s*(?:g|gr|grams?)\b"
+_ML = r"\s*(?:g|gr|grams?|ml)\b"
+
+
+def extract_observed_parameters(text: str) -> Dict[str, Any]:
+    """Extracts only the brewing parameters explicitly stated in the text.
+
+    Nothing is defaulted: a key is present only when the value was actually found,
+    so callers can tell a real recipe from a page that merely mentions coffee.
+    """
+    lower = (text or "").lower()
+    found: Dict[str, Any] = {}
+
+    for needle, name in [
+        ("v60", "Hario V60"), ("kalita", "Kalita Wave"), ("origami", "Origami Dripper"),
+        ("chemex", "Chemex"), ("aeropress", "AeroPress"), ("clever", "Clever Dripper"),
+        ("stagg", "Fellow Stagg [X]"), ("april brewer", "April Brewer"),
+    ]:
+        if needle in lower:
+            found["dripper"] = name
+            break
+
+    dose_m = (
+        re.search(rf"(?:dose|coffee|grounds?)\s*[:\-]?\s*{_NUM}{_G}", lower)
+        or re.search(rf"{_NUM}{_G}\s*(?:of\s+)?(?:ground\s+|fresh(?:ly)?\s+ground\s+)?(?:coffee|dose|beans|grounds)", lower)
+    )
+    if dose_m:
+        dose = float(dose_m.group(1))
+        if 5 <= dose <= 60:
+            found["dose_g"] = dose
+
+    water_m = (
+        re.search(rf"(?:water|yield|total(?:\s+water)?|brew\s+weight)\s*[:\-]?\s*{_NUM}{_ML}", lower)
+        or re.search(rf"{_NUM}{_ML}\s*(?:of\s+)?(?:hot\s+|filtered\s+|total\s+)?water", lower)
+    )
+    if water_m:
+        water = float(water_m.group(1))
+        if 80 <= water <= 1000:
+            found["water_g"] = water
+
+    ratio_m = re.search(r"\b1\s*:\s*(\d{1,2}(?:\.\d)?)\b", lower)
+    if ratio_m and 10 <= float(ratio_m.group(1)) <= 20:
+        found["ratio"] = f"1:{ratio_m.group(1)}"
+
+    # Derive the missing one of dose / water / ratio only from the two that were stated
+    if "dose_g" in found and "water_g" not in found and "ratio" in found:
+        found["water_g"] = round(found["dose_g"] * float(found["ratio"].split(":")[1]), 1)
+    if "dose_g" in found and "water_g" in found and "ratio" not in found:
+        found["ratio"] = f"1:{round(found['water_g'] / found['dose_g'], 1)}"
+
+    temp_c_m = re.search(r"(\d{2})\s*(?:°\s*c\b|degrees\s+c|celsius|c\b)", lower)
+    if temp_c_m and 80 <= int(temp_c_m.group(1)) <= 100:
+        found["water_temperature_c"] = int(temp_c_m.group(1))
+    else:
+        temp_f_m = re.search(r"(\d{3})\s*(?:°\s*f\b|degrees\s+f|fahrenheit|f\b)", lower)
+        if temp_f_m and 175 <= int(temp_f_m.group(1)) <= 212:
+            found["water_temperature_c"] = round((int(temp_f_m.group(1)) - 32) * 5 / 9)
+
+    grind_m = re.search(r"(medium[\s-]coarse|medium[\s-]fine|coarse|fine|medium)\s*(?:grind|ground)|grind(?:\s+size)?\s*[:\-]?\s*(medium[\s-]coarse|medium[\s-]fine|coarse|fine|medium)", lower)
+    if grind_m:
+        found["grind_description"] = (grind_m.group(1) or grind_m.group(2)).replace(" ", "-").capitalize()
+
+    return found
 
 
 class RecipeParser:
@@ -60,53 +126,16 @@ class RecipeParser:
 
     def _rule_based_parse(self, text: str, url: str = "") -> ExtractedSourceRecipe:
         lower = text.lower()
+        observed = extract_observed_parameters(text)
 
-        # Dripper detection
-        dripper = "Hario V60"
-        if "kalita" in lower:
-            dripper = "Kalita Wave"
-        elif "origami" in lower:
-            dripper = "Origami Dripper"
-        elif "chemex" in lower:
-            dripper = "Chemex"
-        elif "aeropress" in lower:
-            dripper = "AeroPress"
-        elif "clever" in lower:
-            dripper = "Clever Dripper"
-        elif "fellow" in lower or "stagg" in lower:
-            dripper = "Fellow Stagg [X]"
-
-        # Dose detection (e.g. 15g, 18 grams, Dose: 16g)
-        dose = 15.0
-        dose_m = re.search(r"(?:dose|coffee|grounds?)[:\s]*(\d{1,2}(?:\.\d)?)\s*(?:g|grams)", lower)
-        if dose_m:
-            dose = float(dose_m.group(1))
-
-        # Water detection (e.g. 240g, 250 ml, Water: 300g)
-        water = dose * 16.0
-        water_m = re.search(r"(?:water|yield|total)[:\s]*(\d{2,3}(?:\.\d)?)\s*(?:g|ml|grams)", lower)
-        if water_m:
-            water = float(water_m.group(1))
-
-        # Ratio detection (e.g. 1:16, 1:15)
-        ratio = f"1:{round(water / dose, 1)}" if dose > 0 else "1:16"
-        ratio_m = re.search(r"1\s*:\s*(\d{1,2}(?:\.\d)?)", lower)
-        if ratio_m:
-            ratio = f"1:{ratio_m.group(1)}"
-
-        # Temperature detection (e.g. 93°C, 92C, 205°F)
-        temp = 93
-        temp_c_m = re.search(r"(\d{2})\s*(?:°\s*c|celsius|c\b)", lower)
-        if temp_c_m:
-            val = int(temp_c_m.group(1))
-            if 80 <= val <= 99:
-                temp = val
-        else:
-            temp_f_m = re.search(r"(\d{3})\s*(?:°\s*f|fahrenheit|f\b)", lower)
-            if temp_f_m:
-                val_f = int(temp_f_m.group(1))
-                if 175 <= val_f <= 212:
-                    temp = round((val_f - 32) * 5 / 9)
+        # Values not stated in the text fall back to conventional defaults. Callers that
+        # must not invent parameters (live discovery) use extract_observed_parameters directly.
+        dripper = observed.get("dripper") or "Hario V60"
+        dose = observed.get("dose_g") or 15.0
+        water = observed.get("water_g") or dose * 16.0
+        ratio = observed.get("ratio") or (f"1:{round(water / dose, 1)}" if dose > 0 else "1:16")
+        temp = observed.get("water_temperature_c") or 93
+        grind = observed.get("grind_description") or "Medium-fine"
 
         # Process detection
         process = None
@@ -121,15 +150,6 @@ class RecipeParser:
             if r in lower:
                 roast = r.capitalize()
                 break
-
-        # Grind detection
-        grind = "Medium-fine"
-        if "medium-coarse" in lower or "coarse" in lower:
-            grind = "Medium-coarse"
-        elif "fine" in lower:
-            grind = "Fine"
-        elif "medium" in lower:
-            grind = "Medium"
 
         # Origin / Country detection
         country = None

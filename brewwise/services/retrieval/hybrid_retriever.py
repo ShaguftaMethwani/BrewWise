@@ -1,4 +1,5 @@
 import math
+import operator
 import logging
 from typing import List, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,7 +39,11 @@ class HybridRetriever:
             return []
 
         # Load all sources with their embeddings
-        stmt = select(RecipeSourceModel).options(selectinload(RecipeSourceModel.embeddings))
+        stmt = (
+            select(RecipeSourceModel)
+            .where(RecipeSourceModel.is_accessible.isnot(False))  # stale/inaccessible records are not used as evidence
+            .options(selectinload(RecipeSourceModel.embeddings))
+        )
         res = await db.execute(stmt)
         all_sources = res.scalars().all()
         if not all_sources:
@@ -48,7 +53,14 @@ class HybridRetriever:
         query_embeddings = await self.embedding_provider.embed_documents(queries)
 
         # 1. Vector Search scoring
-        # For each source, find max cosine similarity across all query vectors and all source chunks
+        # For each source, max cosine similarity across all query vectors and source chunks.
+        # Norms are computed once per vector rather than once per (query, chunk) pair.
+        normed_queries = []
+        for q_vec in query_embeddings:
+            q_norm = math.sqrt(sum(x * x for x in q_vec)) if q_vec else 0.0
+            if q_norm > 0.0:
+                normed_queries.append((q_vec, q_norm))
+
         vector_scores: Dict[str, float] = {}
         for source in all_sources:
             max_sim = 0.0
@@ -56,14 +68,20 @@ class HybridRetriever:
                 emb_vec = emb_record.embedding
                 if not emb_vec:
                     continue
-                for q_vec in query_embeddings:
-                    sim = cosine_similarity(q_vec, emb_vec)
+                e_norm = math.sqrt(sum(x * x for x in emb_vec))
+                if e_norm == 0.0:
+                    continue
+                for q_vec, q_norm in normed_queries:
+                    if len(q_vec) != len(emb_vec):
+                        continue
+                    sim = sum(map(operator.mul, q_vec, emb_vec)) / (q_norm * e_norm)
                     if sim > max_sim:
                         max_sim = sim
             vector_scores[source.id] = max_sim
 
         # 2. Text / Keyword Search scoring
         # Token overlap and matching against title, metadata, and raw_content
+        tokenised_queries = [(q, [t.lower() for t in q.split() if len(t) > 2]) for q in queries]
         keyword_scores: Dict[str, float] = {}
         for source in all_sources:
             searchable_text = f"{source.title or ''} {source.raw_content or ''}"
@@ -72,8 +90,7 @@ class HybridRetriever:
             lower_text = searchable_text.lower()
 
             match_score = 0.0
-            for query in queries:
-                q_tokens = [t.lower() for t in query.split() if len(t) > 2]
+            for query, q_tokens in tokenised_queries:
                 if not q_tokens:
                     continue
                 hits = sum(1 for t in q_tokens if t in lower_text)

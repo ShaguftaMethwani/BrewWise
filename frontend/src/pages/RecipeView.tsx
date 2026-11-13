@@ -117,7 +117,7 @@ export const RecipeView: React.FC = () => {
         };
       case 'curated_baseline':
         return {
-          label: 'Curated Expert Baseline',
+          label: 'Rule-Based Starting Recipe',
           bg: 'rgba(59, 130, 246, 0.15)',
           color: '#3b82f6',
           border: 'rgba(59, 130, 246, 0.3)',
@@ -185,7 +185,7 @@ export const RecipeView: React.FC = () => {
                 {badge.label}
               </span>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {recipe.grinder || 'Universal Setting'}
+                {recipe.grinder || 'Not specified'}
               </span>
             </div>
             <h1 style={{ fontSize: '2.4rem', fontFamily: 'var(--font-serif)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>

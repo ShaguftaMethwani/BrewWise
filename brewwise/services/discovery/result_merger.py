@@ -23,7 +23,7 @@ class ResultMerger:
                 id=str(uuid.uuid4()),
                 url=live.url,
                 title=live.title,
-                author=live.author or "Online Discovery",
+                author=live.author,
                 site_name=live.site_name,
                 raw_content=live.instructions or f"Discovered pour-over recipe: {live.title}",
                 content_hash="live-" + uuid.uuid4().hex[:12],
@@ -37,7 +37,8 @@ class ResultMerger:
                     "ratio": live.ratio,
                     "water_temperature_c": live.water_temperature_c,
                     "grind_description": live.grind_description,
-                }
+                },
+                retrieval_date=live.retrieved_at,
             )
             # Give live discovered results an active initial retrieval score (0.88)
             merged.append((transient_source, 0.88))

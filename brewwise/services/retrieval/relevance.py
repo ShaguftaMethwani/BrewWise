@@ -4,6 +4,12 @@ from pydantic import BaseModel, Field
 
 from brewwise.schemas.coffee_profile import CoffeeProfileDraft
 from brewwise.models.recipe_source import RecipeSourceModel
+from brewwise.services.identity.normaliser import normalise_process_method
+
+
+def _same(a: str, b: str) -> bool:
+    """True only when both values are known and one contains the other."""
+    return bool(a) and bool(b) and (a in b or b in a)
 
 
 class MatchClassification(str, Enum):
@@ -83,10 +89,13 @@ class MatchClassifier:
         s_process = (meta.get("process") or "").strip().lower()
         s_roast = (meta.get("roast_level") or "").strip().lower()
 
-        # Check Exact / Strong match
-        brand_match = p_brand and (p_brand in s_brand or s_brand in p_brand)
-        estate_match = p_estate and (p_estate in s_estate or s_estate in p_estate)
-        prod_in_title = p_prod and p_prod in title_str
+        s_product = (meta.get("product_name") or "").strip().lower()
+
+        # Identity matching. Both sides must be known: a source with no brand/estate
+        # metadata is "unverified", never a match.
+        brand_match = _same(p_brand, s_brand)
+        estate_match = _same(p_estate, s_estate)
+        prod_match = bool(p_prod) and (_same(p_prod, s_product) or p_prod in title_str)
 
         if estate_match and brand_match:
             score += 0.55
@@ -94,25 +103,51 @@ class MatchClassifier:
         elif estate_match:
             score += 0.45
             reasons.append(f"Same estate/farm ({meta.get('estate')})")
-        elif prod_in_title and brand_match:
+        elif prod_match and brand_match:
             score += 0.48
             reasons.append(f"Exact product match ({profile.product_name.value})")
+        identity_match = estate_match or (prod_match and brand_match)
 
-        # Process match
-        if p_process and s_process and (p_process in s_process or s_process in p_process):
+        # Process match (compared on normalised terminology, e.g. "Fully Washed" == "washed")
+        n_p_process = (normalise_process_method(p_process) or "") if p_process else ""
+        n_s_process = (normalise_process_method(s_process) or "") if s_process else ""
+        process_match = _same(n_p_process, n_s_process)
+        if process_match:
             score += 0.15
             reasons.append(f"Matching {meta.get('process')} process")
 
         # Origin / Country match
-        if p_country and s_country and (p_country in s_country or s_country in p_country):
+        if _same(p_country, s_country):
             score += 0.12
             reasons.append(f"Origin match: {meta.get('country')}")
 
         # Roast level match
-        if p_roast and s_roast:
-            if p_roast in s_roast or s_roast in p_roast:
-                score += 0.08
-                reasons.append(f"Matching {meta.get('roast_level')} roast")
+        if _same(p_roast, s_roast):
+            score += 0.08
+            reasons.append(f"Matching {meta.get('roast_level')} roast")
+
+        # A recipe for another lot from the same estate/roaster is a reference, not an exact match.
+        score_cap = 1.0
+        if identity_match:
+            if n_p_process and n_s_process and not process_match:
+                score_cap = cls.STRONG_THRESHOLD - 0.01
+                reasons.append(
+                    f"Different lot: source is {meta.get('process')} process, this coffee is "
+                    f"{profile.process.value} - used as a related reference, not an exact match"
+                )
+            elif p_prod and s_product and not _same(p_prod, s_product) and not estate_match:
+                score_cap = cls.STRONG_THRESHOLD - 0.01
+                reasons.append("Same roaster but a different product - used as a related reference")
+            elif estate_match and not brand_match:
+                if p_brand and s_brand:
+                    score_cap = cls.STRONG_THRESHOLD - 0.01
+                    reasons.append(
+                        f"Same estate but roasted by {meta.get('brand')} - a different release, used as a related reference"
+                    )
+                else:
+                    # Roaster unknown on one side: cannot be verified as the exact coffee
+                    score_cap = cls.EXACT_THRESHOLD - 0.01
+                    reasons.append("Roaster could not be verified, so this is not confirmed as the exact coffee")
 
         # Dripper / Equipment alignment
         if target_dripper and dripper_str and target_dripper.lower() in dripper_str:
@@ -120,7 +155,7 @@ class MatchClassifier:
             reasons.append(f"Matching {target_dripper} dripper")
 
         # Cap score at 1.0
-        final_score = min(round(score, 3), 1.0)
+        final_score = round(min(score, score_cap, 1.0), 3)
 
         # Classification thresholds
         if final_score >= cls.EXACT_THRESHOLD:

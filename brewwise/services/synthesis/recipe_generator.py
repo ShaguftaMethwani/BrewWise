@@ -1,7 +1,8 @@
+import hashlib
 import json
 import logging
 from pathlib import Path
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 from jinja2 import Template
 
 from brewwise.providers.llm.base import LLMProvider
@@ -16,6 +17,7 @@ from brewwise.schemas.recipe import (
     RecipeGenerateRequest,
 )
 from brewwise.services.synthesis.validator import RecipeValidator
+from brewwise.services.equipment.dripper_guide import get_dripper_details
 
 from brewwise.services.retrieval.evidence_evaluator import EvidencePackage
 from brewwise.services.synthesis.provenance_verifier import ProvenanceVerifier
@@ -23,36 +25,124 @@ from brewwise.services.synthesis.provenance_verifier import ProvenanceVerifier
 logger = logging.getLogger(__name__)
 
 
+STRENGTH_RATIO_SHIFT = {"light": 1.0, "balanced": 0.0, "strong": -1.0}
+
+STANDARD_TROUBLESHOOTING = [
+    TroubleshootingTip(
+        symptom="Coffee tastes sour or hollow",
+        likely_cause="Often under-extraction (water passing through too quickly), though very light roasts can simply be acidic",
+        adjustment="Grind slightly finer first; if still sour next time, raise the water temperature by 1-2°C"
+    ),
+    TroubleshootingTip(
+        symptom="Coffee tastes harsh, dry, or bitter",
+        likely_cause="Often over-extraction or channelling from uneven pouring",
+        adjustment="Grind slightly coarser first; if still bitter next time, lower the water temperature by 1-2°C"
+    ),
+    TroubleshootingTip(
+        symptom="Coffee tastes weak or watery",
+        likely_cause="Brew strength too low for your taste, or the grind is too coarse",
+        adjustment="Use a tighter ratio (about 1g less water per gram of coffee) or grind slightly finer - change one at a time"
+    ),
+    TroubleshootingTip(
+        symptom="Drawdown is slow or stalls",
+        likely_cause="Grind too fine, fines clogging the filter, or too much agitation while pouring",
+        adjustment="Grind slightly coarser and pour more gently; check the filter is seated properly and not clogged"
+    ),
+]
+
+
+def ensure_troubleshooting_coverage(tips: List[TroubleshootingTip]) -> List[TroubleshootingTip]:
+    """Guarantees tips for sourness, bitterness, weak flavour and slow drawdown."""
+    covered = " ".join(t.symptom.lower() for t in tips)
+    groups = [("sour",), ("bitter", "harsh", "astringent"), ("weak", "watery", "thin"), ("slow", "stall", "clog")]
+    result = list(tips)
+    for keywords, default_tip in zip(groups, STANDARD_TROUBLESHOOTING):
+        if not any(k in covered for k in keywords):
+            result.append(default_tip)
+    return result
+
+
+def _mmss(seconds: int) -> str:
+    return f"{seconds // 60}:{seconds % 60:02d}"
+
+
+def _g(value: float) -> str:
+    return f"{value:g}"
+
+
 def generate_baseline_recipe(
     coffee: CoffeeProfileDraft,
     dripper: str = "Hario V60",
     grinder: Optional[str] = None,
-    dose_g: float = 15.0
+    dose_g: float = 15.0,
+    target_strength: Optional[str] = "balanced",
+    anchor: Optional[Dict[str, Any]] = None,
+    anchor_title: Optional[str] = None
 ) -> RecipeGenerationOutput:
-    """Deterministic fallback expert recipe when LLM is unavailable or for offline testing."""
-    roast = (coffee.roast_level.value or "medium").lower()
-    process = (coffee.process.value or "washed").lower()
+    """Deterministic rule-based starting recipe, used when no LLM is available or its output fails validation.
+    Unknown coffee characteristics are stated as assumptions, never presented as facts."""
+    roast_known = bool(coffee.roast_level.value)
+    process_known = bool(coffee.process.value)
+    roast = (coffee.roast_level.value or "").lower().replace("_", " ")
+    process = (coffee.process.value or "").lower().replace("_", " ")
 
+    assumptions = ["Soft filtered water", "Coffee rested at least a few days after roasting"]
     if "dark" in roast:
-        temp = 89
-        ratio = "1:15"
-        water_g = dose_g * 15.0
-        grind = "Medium-coarse (resembling sea salt)"
-    elif "light" in roast:
-        temp = 94
-        ratio = "1:16"
-        water_g = dose_g * 16.0
-        grind = "Medium-fine (resembling table salt)"
+        temp, ratio_num, grind = 89, 15.0, "Medium-coarse (resembling sea salt)"
+    elif "light" in roast and "medium" not in roast:
+        temp, ratio_num, grind = 94, 16.0, "Medium-fine (resembling table salt)"
     else:
-        temp = 92
-        ratio = "1:16"
-        water_g = dose_g * 16.0
-        grind = "Medium (resembling sand)"
+        temp, ratio_num, grind = 92, 16.0, "Medium (resembling sand)"
+    if not roast_known:
+        assumptions.append("Roast level is not stated on the bag; a middle-of-the-road 92°C starting point is used")
+    if not process_known:
+        assumptions.append("Processing method is not stated on the bag, so it did not inform this recipe")
+
+    # Heavily fermented / natural lots tend to extract easily: start slightly cooler
+    if any(k in process for k in ("natural", "anaerobic", "carbonic", "thermal")):
+        temp -= 1
+
+    # Anchor on a retrieved source recipe when one is available: its stated ratio,
+    # temperature and grind replace the generic starting values.
+    anchored: Dict[str, str] = {}
+    if anchor:
+        try:
+            a_dose, a_water = float(anchor.get("dose_g") or 0), float(anchor.get("water_g") or 0)
+            if a_dose > 0 and 12 <= a_water / a_dose <= 19:
+                ratio_num = round(a_water / a_dose, 1)
+                anchored["ratio"] = f"1:{_g(ratio_num)}"
+        except (TypeError, ValueError):
+            pass
+        a_temp = anchor.get("water_temperature_c")
+        if isinstance(a_temp, (int, float)) and 85 <= a_temp <= 99:
+            temp = int(a_temp)
+            anchored["temperature"] = f"{temp}°C"
+        if anchor.get("grind_description"):
+            grind = str(anchor["grind_description"])
+            anchored["grind"] = grind
+
+    ratio_num += STRENGTH_RATIO_SHIFT.get(target_strength or "balanced", 0.0)
+    ratio = f"1:{_g(ratio_num)}"
+    water_g = round(dose_g * ratio_num, 1)
+
+    details = get_dripper_details(dripper) if dripper else None
+    flat_bottom = bool(details and "flat" in details["geometry"].lower())
 
     bloom_water = round(dose_g * 3.0, 1)
-    remaining_water = water_g - bloom_water
-    pour2 = round(remaining_water * 0.5, 1)
-    pour3 = round(remaining_water - pour2, 1)
+    remaining_water = round(water_g - bloom_water, 1)
+    # Flat-bottom brewers favour more, smaller pulses; cones work well with two larger pours
+    pour_count = 3 if flat_bottom else 2
+    bloom_time = 45
+    interval = 35 if flat_bottom else 45
+    # Larger brews need longer pours and a longer drawdown
+    pour_duration = max(15, min(40, round(remaining_water / pour_count / 5)))
+    target_time = bloom_time + interval * pour_count + max(45, round(dose_g * 3))
+
+    main_technique = (
+        "Gentle centre pulse pour keeping the water level even across the flat bed"
+        if flat_bottom else
+        "Steady spiral pour from the centre outward, avoiding the filter walls"
+    )
 
     steps = [
         PourStep(
@@ -62,27 +152,71 @@ def generate_baseline_recipe(
             start_time_seconds=0,
             duration_seconds=15,
             technique="Gentle spiral pour saturating all dry grounds",
-            notes="Swirl gently or allow grounds to bloom until 0:45"
-        ),
-        PourStep(
-            step_number=2,
-            water_g=pour2,
-            cumulative_water_g=round(bloom_water + pour2, 1),
-            start_time_seconds=45,
-            duration_seconds=25,
-            technique="Continuous steady spiral pour from centre to edge without washing sides",
-            notes="Maintain steady flow rate"
-        ),
-        PourStep(
-            step_number=3,
-            water_g=pour3,
-            cumulative_water_g=water_g,
-            start_time_seconds=90,
-            duration_seconds=25,
-            technique="Centre pulse pour to reach final brew weight",
-            notes="Allow complete drawdown by 2:45 - 3:15"
-        ),
+            notes=f"Let the coffee bloom until {_mmss(bloom_time)}"
+        )
     ]
+    cumulative = bloom_water
+    for i in range(pour_count):
+        is_last = i == pour_count - 1
+        amount = round(water_g - cumulative, 1) if is_last else round(remaining_water / pour_count, 1)
+        cumulative = water_g if is_last else round(cumulative + amount, 1)
+        steps.append(
+            PourStep(
+                step_number=i + 2,
+                water_g=amount,
+                cumulative_water_g=cumulative,
+                start_time_seconds=bloom_time + interval * i,
+                duration_seconds=pour_duration,
+                technique=main_technique,
+                notes=(
+                    f"Aim for full drawdown around {_mmss(target_time)}" if is_last
+                    else f"Pour until the scale reads {_g(cumulative)}g"
+                )
+            )
+        )
+
+    instructions = [
+        f"Place the filter in the {dripper}, rinse it with hot water, and discard the rinse water.",
+        f"Add {_g(dose_g)}g of ground coffee, level the bed, and tare the scale.",
+        f"Start the timer and pour {_g(bloom_water)}g of water at {temp}°C in gentle spirals. Wait until {_mmss(bloom_time)}.",
+    ]
+    for step in steps[1:]:
+        instructions.append(
+            f"At {_mmss(step.start_time_seconds)}, pour {_g(step.water_g)}g until the scale reads {_g(step.cumulative_water_g)}g."
+        )
+    instructions.append(f"Let the brew draw down completely (target about {_mmss(target_time)}), swirl, and serve.")
+
+    notes = coffee.tasting_notes.value
+    expected = (
+        f"Prediction, not a guarantee: the bag lists {notes}; this recipe aims for a clean, balanced cup that lets those notes show."
+        if notes else
+        "Prediction, not a guarantee: a clean, balanced cup. No tasting notes were read from the bag."
+    )
+
+    roast_phrase = f"{roast} roast" if roast_known else "unstated roast level"
+    rationale = {
+        "temperature": (
+            f"{temp}°C is a common starting point for a {roast_phrase}"
+            + (f" with {process} processing" if process_known else "")
+            + "; adjust by taste rather than treating it as the single correct value."
+        ),
+        "ratio": f"{ratio} targets {target_strength or 'balanced'} strength.",
+        "bloom": f"{_g(bloom_water)}g (3x dose) lets trapped CO2 escape before the main pours.",
+    }
+    if details:
+        rationale["dripper"] = f"{details['name']} ({details['geometry']}, flow: {details['flow_rate']}) shapes the pour structure."
+
+    if anchored:
+        source_label = anchor_title or "the top retrieved source"
+        for key, value in anchored.items():
+            rationale[key] = f"{value} is taken from {source_label}." + (
+                f" Ratio then shifted for {target_strength} strength." if key == "ratio" and target_strength in ("light", "strong") else ""
+            )
+        limitations = [f"Ratio, temperature and grind follow {source_label}; the pour schedule is a standard structure scaled to your dose"]
+    else:
+        limitations = ["Rule-based starting recipe: not derived from a published recipe for this coffee"]
+    if dripper and not details:
+        limitations.append(f"'{dripper}' is not in the equipment catalogue, so a generic pour structure is used")
 
     return RecipeGenerationOutput(
         dose_g=dose_g,
@@ -93,40 +227,25 @@ def generate_baseline_recipe(
         grind_setting=None,
         filter_prep="Rinse paper filter with hot water and discard rinse water.",
         bloom_water_g=bloom_water,
-        bloom_time_seconds=45,
+        bloom_time_seconds=bloom_time,
         pour_schedule=steps,
-        target_brew_time_seconds=180,
-        step_by_step_instructions=[
-            f"Preheat {dripper} and thoroughly rinse paper filter.",
-            f"Add {dose_g}g of ground coffee, tap gently to level bed, and tare scale.",
-            f"Start timer and pour {bloom_water}g water at {temp}°C in gentle spirals. Wait until 0:45.",
-            f"At 0:45, pour steadily until scale reads {bloom_water + pour2}g.",
-            f"At 1:30, pour final water until total weight reaches {water_g}g.",
-            "Let draw down completely, swirl carafe, and enjoy!"
-        ],
-        expected_flavour=f"Clean, expressive notes highlighted by {coffee.tasting_notes.value or 'sweet clarity'}.",
+        target_brew_time_seconds=target_time,
+        step_by_step_instructions=instructions,
+        expected_flavour=expected,
         explanation=RecipeExplanation(
-            reasoning_summary=f"Tailored {ratio} ratio and {temp}°C water to extract optimal sweetness from {roast} roasted, {process} coffee.",
-            parameter_rationale={
-                "temperature": f"{temp}°C chosen to balance extraction without extracting harsh roasty bitter notes.",
-                "ratio": f"{ratio} delivers balanced strength and high flavor clarity on a conical dripper.",
-                "bloom": f"{bloom_water}g (3x dose) allows trapped CO2 to fully escape."
-            },
-            assumptions=["Soft filtered water with 50-90 ppm TDS", "Freshly roasted specialty beans"]
-        ),
-        troubleshooting=[
-            TroubleshootingTip(
-                symptom="Coffee tastes sour or hollow",
-                likely_cause="Under-extraction or water flowing too quickly",
-                adjustment="Grind slightly finer or increase water temperature by 2°C"
+            reasoning_summary=(
+                f"Starting recipe built from general pour-over principles for a {roast_phrase}"
+                + (f", {process} coffee" if process_known else " coffee")
+                + f": {ratio} at {temp}°C."
+            ) if not anchored else (
+                f"Parameters ({', '.join(anchored)}) follow {anchor_title or 'the top retrieved source'}, "
+                f"scaled to a {_g(dose_g)}g dose: {ratio} at {temp}°C."
             ),
-            TroubleshootingTip(
-                symptom="Coffee tastes harsh, dry, or bitter",
-                likely_cause="Over-extraction or channelling",
-                adjustment="Grind slightly coarser or decrease water temperature by 2°C"
-            )
-        ],
-        limitations=["Assumes standard paper filter and room temperature dripper preheating"]
+            parameter_rationale=rationale,
+            assumptions=assumptions
+        ),
+        troubleshooting=list(STANDARD_TROUBLESHOOTING),
+        limitations=limitations
     )
 
 
@@ -166,11 +285,20 @@ class RecipeGenerator:
     ) -> PersonalisedRecipe:
         dose = request.dose_preference_g or 15.0
         dripper = request.dripper or "Hario V60"
-        grinder = request.grinder or "Specialty Grinder"
+        grinder = (request.grinder or "").strip() or None
 
-        # Check cache
-        outcome_code = evidence.match_outcome if evidence else "none"
-        cache_key = f"recipe:{coffee.id}:{dripper}:{grinder}:{dose}:{request.target_strength}:{outcome_code}"
+        # Cache key covers everything that shapes the recipe: the (possibly user-corrected)
+        # profile values, the equipment/preferences, and the evidence actually retrieved.
+        fingerprint = json.dumps({
+            "profile": {
+                name: getattr(coffee, name).value
+                for name in ("brand", "product_name", "estate", "country", "region", "varietal",
+                             "process", "roast_level", "tasting_notes", "altitude")
+            },
+            "request": [dripper, grinder, dose, request.target_strength],
+            "evidence": [evidence.match_outcome, [m.url for m in evidence.matched_recipes[:3]]] if evidence else None,
+        }, sort_keys=True, default=str)
+        cache_key = f"recipe:v2:{coffee.id}:{hashlib.sha256(fingerprint.encode('utf-8')).hexdigest()[:32]}"
         if self.cache_provider:
             cached = await self.cache_provider.get(cache_key)
             if cached:
@@ -180,6 +308,7 @@ class RecipeGenerator:
                     pass
 
         generation_output: Optional[RecipeGenerationOutput] = None
+        used_llm = False
 
         # Choose template: grounded if evidence exists, otherwise standard
         active_template = self.grounded_template if (evidence and self.grounded_template) else self.template
@@ -208,6 +337,7 @@ class RecipeGenerator:
                     valid, errors = RecipeValidator.validate(output)
                     if valid:
                         generation_output = output
+                        used_llm = True
                         break
                     else:
                         logger.warning(f"Recipe validation failed on attempt {attempt}: {errors}")
@@ -216,25 +346,52 @@ class RecipeGenerator:
                     logger.warning(f"LLM generation attempt {attempt} failed: {e}")
 
         # Fallback to deterministic expert baseline if LLM fails or is unconfigured
+        anchored_on_source = False
         if not generation_output:
+            best = evidence.matched_recipes[0] if (evidence and evidence.match_outcome in ("A", "B") and evidence.matched_recipes) else None
             generation_output = generate_baseline_recipe(
                 coffee=coffee,
                 dripper=dripper,
                 grinder=grinder,
-                dose_g=dose
+                dose_g=dose,
+                target_strength=request.target_strength,
+                anchor=best.extracted_recipe if best else None,
+                anchor_title=best.title if best else None
             )
+            anchored_on_source = best is not None
+            if self.llm_provider:
+                generation_output.limitations.append(
+                    "The AI model was unavailable or returned an inconsistent recipe, so a rule-based starting recipe is shown instead"
+                )
 
         from brewwise.services.equipment.grinder_guide import map_grind_setting
 
-        resolved_grind_setting = generation_output.grind_setting
+        # Grinder-specific settings come only from the equipment catalogue. A setting the
+        # model volunteers for a grinder we have no data on is not shown as fact.
+        limitations = list(generation_output.limitations)
+        resolved_grind_setting = map_grind_setting(grinder, generation_output.grind_description) if grinder else None
         if grinder and not resolved_grind_setting:
-            resolved_grind_setting = map_grind_setting(grinder, generation_output.grind_description)
+            limitations.append(
+                f"No verified setting data for '{grinder}': use the relative grind description, "
+                "then go finer if the cup is sour/fast or coarser if it is bitter/slow"
+            )
+
+        if evidence and evidence.match_outcome == "A":
+            confidence = 0.9 if used_llm else 0.8
+        elif evidence and evidence.match_outcome == "B":
+            confidence = 0.75 if used_llm else 0.65
+        else:
+            confidence = 0.6 if used_llm else 0.5
+
+        expected_flavour = generation_output.expected_flavour
+        if "prediction" not in expected_flavour.lower():
+            expected_flavour = f"Prediction, not a guarantee: {expected_flavour}"
 
         # Assemble full PersonalisedRecipe
         recipe = PersonalisedRecipe(
             coffee_profile_id=coffee.id,
-            source_type="ai_generated" if self.llm_provider else "curated_baseline",
-            generation_model=self.model_name if self.llm_provider else "baseline-rule-engine",
+            source_type="ai_generated" if (used_llm or anchored_on_source) else "curated_baseline",
+            generation_model=self.model_name if used_llm else "baseline-rule-engine",
             dripper=dripper,
             grinder=grinder,
             filter_type="Paper",
@@ -250,11 +407,11 @@ class RecipeGenerator:
             pour_schedule=generation_output.pour_schedule,
             target_brew_time_seconds=generation_output.target_brew_time_seconds,
             step_by_step_instructions=generation_output.step_by_step_instructions,
-            expected_flavour=generation_output.expected_flavour,
+            expected_flavour=expected_flavour,
             explanation=generation_output.explanation,
-            troubleshooting=generation_output.troubleshooting,
-            limitations=generation_output.limitations,
-            confidence=0.92 if (evidence and evidence.match_outcome == "A") else 0.88
+            troubleshooting=ensure_troubleshooting_coverage(generation_output.troubleshooting),
+            limitations=limitations,
+            confidence=confidence
         )
 
         # Verify and apply grounded provenance

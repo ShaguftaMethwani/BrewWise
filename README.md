@@ -179,7 +179,7 @@ docker compose up --build
 | `DATABASE_URL` | No | `sqlite+aiosqlite:///./brewwise.db` | Database connection string |
 | `LLM_MODEL` | No | `gemini-2.5-flash` | Gemini model for recipe generation |
 | `EMBEDDING_MODEL` | No | `gemini-embedding-001` | Embedding model for semantic search |
-| `SEARCH_PROVIDER` | No | `mock` | Web search provider: `mock`, `google`, or `tavily` |
+| `SEARCH_PROVIDER` | No | `none` | Live web search provider: `tavily` (needs `TAVILY_API_KEY`), `google` (needs `SEARCH_API_KEY` + `GOOGLE_SEARCH_CX`), or `none`. Without a configured provider the UI states that live search is not configured and only the local knowledge base is used — search results are never simulated. |
 | `SEARCH_API_KEY` | For live search | — | Google Custom Search or Tavily API key |
 | `GOOGLE_SEARCH_CX` | For Google search | — | Google Custom Search Engine ID |
 | `TAVILY_API_KEY` | For Tavily search | — | Tavily API key |

@@ -39,7 +39,10 @@ class EvidenceEvaluator:
                 match_outcome="C",
                 matched_recipes=[],
                 conflicts=[],
-                coverage_summary="No matching pour-over recipes found in knowledge base or live search. Falling back to core brewing physics.",
+                coverage_summary=(
+                    "No sufficiently relevant pour-over recipe was found in the searchable sources for this coffee. "
+                    "The recipe is an AI-generated starting point based on general brewing principles."
+                ),
                 compact_context="NO_RETRIEVED_RECIPES",
                 discovery_status=discovery_status,
                 discovery_message=discovery_message,
@@ -62,11 +65,14 @@ class EvidenceEvaluator:
         if has_exact_or_strong:
             outcome: Literal["A", "B", "C"] = "A"
             best = next(m for m in sorted_matches if m.match_type in (MatchClassification.EXACT, MatchClassification.STRONG))
-            coverage = f"Found high-confidence exact/strong match from {best.author or best.site_name} ({best.title})."
+            coverage = f"Found a recipe for this coffee from {best.author or best.site_name or 'a retrieved source'} ({best.title})."
         elif has_related_or_analogous:
             outcome = "B"
             best = sorted_matches[0]
-            coverage = f"Found related coffee recipes sharing process, origin, or roast characteristics (e.g. {best.title})."
+            coverage = (
+                "No recipe was found for this exact coffee. Recipes for related coffees "
+                f"(e.g. {best.title}) are used as references, not as verified recipes for this coffee."
+            )
         else:
             outcome = "C"
             coverage = "Only general references found. Synthesizing from foundational pour-over science."
@@ -80,8 +86,10 @@ class EvidenceEvaluator:
             r = m.extracted_recipe
             compact_lines.append(
                 f"Source {i} [{m.match_type.value.upper()} - {m.relevance_score}]: {m.title} ({m.url})\n"
-                f"  Equipment: {r.get('dripper', 'V60')}, Dose: {r.get('dose_g')}g, Water: {r.get('water_g')}g, "
-                f"Ratio: {r.get('ratio', '1:16')}, Temp: {r.get('water_temperature_c', 93)}°C, Grind: {r.get('grind_description', 'Medium-fine')}\n"
+                f"  Equipment: {r.get('dripper') or 'not stated'}, Dose: {r.get('dose_g')}g, Water: {r.get('water_g')}g, "
+                f"Ratio: {r.get('ratio') or 'not stated'}, "
+                f"Temp: {str(r.get('water_temperature_c')) + '°C' if r.get('water_temperature_c') else 'not stated'}, "
+                f"Grind: {r.get('grind_description') or 'not stated'}\n"
                 f"  Relevance: {', '.join(m.match_reasons) if m.match_reasons else 'General pour-over'}"
             )
 
@@ -135,7 +143,7 @@ class EvidenceEvaluator:
             return None
 
         ratios = [
-            (m.title, parse_ratio(m.extracted_recipe.get("ratio", "")))
+            (m.title, parse_ratio(m.extracted_recipe.get("ratio") or ""))
             for m in top_matches
         ]
         valid_ratios = [(t, r) for t, r in ratios if r is not None]

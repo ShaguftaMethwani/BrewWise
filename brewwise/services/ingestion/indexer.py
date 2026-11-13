@@ -65,7 +65,7 @@ class Indexer:
             id=str(uuid.uuid4()),
             url=url,
             title=title or f"{recipe.dripper} Pour-Over Recipe",
-            author=author or "Specialty Coffee Roaster",
+            author=author,
             site_name=site_name,
             raw_content=raw_content,
             content_hash=content_hash,
@@ -80,11 +80,21 @@ class Indexer:
 
         # Build embedding texts: include rich semantic summary + chunks
         summary_text = (
-            f"Coffee Recipe: {source.title}. Dripper: {recipe.dripper}. "
-            f"Ratio: {recipe.ratio}, Dose: {recipe.dose_g}g, Water: {recipe.water_g}g, Temp: {recipe.water_temperature_c}°C, Grind: {recipe.grind_description}. "
-            f"Coffee Origin: {recipe.country or 'Specialty'}, Process: {recipe.process or 'Washed'}, Roast: {recipe.roast_level or 'Medium'}. "
-            f"Notes: {recipe.tasting_notes or 'Balanced fruit and sweetness'}. "
-            f"Content: {raw_content[:300]}"
+            " ".join(
+                part for part in [
+                    f"Coffee Recipe: {source.title}.",
+                    f"Dripper: {recipe.dripper}." if recipe.dripper else "",
+                    f"Ratio: {recipe.ratio}," if recipe.ratio else "",
+                    f"Dose: {recipe.dose_g}g, Water: {recipe.water_g}g.",
+                    f"Temp: {recipe.water_temperature_c}°C." if recipe.water_temperature_c else "",
+                    f"Grind: {recipe.grind_description}." if recipe.grind_description else "",
+                    f"Coffee Origin: {recipe.country}." if recipe.country else "",
+                    f"Process: {recipe.process}." if recipe.process else "",
+                    f"Roast: {recipe.roast_level}." if recipe.roast_level else "",
+                    f"Notes: {recipe.tasting_notes}." if recipe.tasting_notes else "",
+                    f"Content: {raw_content[:300]}",
+                ] if part
+            )
         )
 
         chunks = [summary_text]

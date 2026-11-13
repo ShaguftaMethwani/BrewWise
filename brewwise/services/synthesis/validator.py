@@ -24,7 +24,12 @@ class RecipeValidator:
                         f"Dose {output.dose_g}g with ratio {output.ratio} implies ~{expected_water}g water, but water_g is {output.water_g}g."
                     )
             except ValueError:
-                pass
+                errors.append(f"Ratio '{output.ratio}' is not a valid 1:N ratio.")
+        else:
+            errors.append(f"Ratio '{output.ratio}' is not a valid 1:N ratio.")
+
+        if output.dose_g <= 0 or output.water_g <= 0:
+            errors.append("Dose and total water must be positive.")
 
         # 3. Bloom check
         if output.bloom_water_g > output.water_g:
@@ -56,5 +61,26 @@ class RecipeValidator:
                         f"Pour step {p.step_number} start time ({p.start_time_seconds}s) must be after previous step ({last_start}s)."
                     )
                 last_start = p.start_time_seconds
+                if p.water_g <= 0:
+                    errors.append(f"Pour step {p.step_number} must add a positive amount of water.")
+
+            # Timing feasibility
+            first, last = output.pour_schedule[0], output.pour_schedule[-1]
+            if abs(first.water_g - output.bloom_water_g) > 2.0:
+                errors.append(
+                    f"First pour ({first.water_g}g) must be the bloom ({output.bloom_water_g}g)."
+                )
+            if len(output.pour_schedule) > 1 and output.pour_schedule[1].start_time_seconds < output.bloom_time_seconds - 5:
+                errors.append(
+                    f"Second pour starts at {output.pour_schedule[1].start_time_seconds}s, before the {output.bloom_time_seconds}s bloom has finished."
+                )
+            if last.start_time_seconds >= output.target_brew_time_seconds:
+                errors.append(
+                    f"Last pour starts at {last.start_time_seconds}s, at or after the target brew time ({output.target_brew_time_seconds}s)."
+                )
+            if not (60 <= output.target_brew_time_seconds <= 480):
+                errors.append(
+                    f"Target brew time {output.target_brew_time_seconds}s is outside a plausible pour-over range (60-480s)."
+                )
 
         return len(errors) == 0, errors

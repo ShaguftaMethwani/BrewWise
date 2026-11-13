@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,17 @@ router = APIRouter(prefix="/scan", tags=["Scan"])
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
+def sniff_image_type(data: bytes) -> Optional[str]:
+    """Identifies JPEG / PNG / WebP from magic bytes; returns None for anything else."""
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 @router.post("", response_model=CoffeeProfileDraft)
 async def scan_coffee_bag(
     file: UploadFile = File(...),
@@ -28,12 +40,21 @@ async def scan_coffee_bag(
             detail=f"Unsupported file type '{file.content_type}'. Please upload JPEG, PNG, or WebP images."
         )
 
-    image_bytes = await file.read()
+    # Read at most one byte past the limit so oversized uploads are not buffered in full
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    image_bytes = await file.read(max_bytes + 1)
     if len(image_bytes) > max_bytes:
         raise HTTPException(
-            status_code=400,
+            status_code=413,
             detail=f"Image exceeds maximum permitted size of {settings.MAX_UPLOAD_SIZE_MB}MB."
+        )
+
+    # Trust the file's actual signature, not the client-supplied Content-Type header
+    sniffed_type = sniff_image_type(image_bytes)
+    if sniffed_type is None:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is not a valid JPEG, PNG, or WebP image."
         )
 
     # If Vision provider is not configured (e.g. no Gemini API key set yet), provide informative error or mock draft
@@ -41,7 +62,7 @@ async def scan_coffee_bag(
         draft = await extractor.extract(
             image_bytes=image_bytes,
             filename=file.filename or "bag.jpg",
-            content_type=file.content_type
+            content_type=sniffed_type
         )
     except ValueError as ve:
         # e.g., missing API key

@@ -2,19 +2,21 @@ You are an expert specialty coffee brewer and recipe designer.
 Given the following coffee profile and equipment context, generate a dialed-in pour-over recipe with inline reasoning.
 
 Coffee Information:
-- Roaster: {{ coffee.brand.value or "Specialty Roaster" }}
-- Coffee Name: {{ coffee.product_name.value or "Single Origin" }}
+- Roaster: {{ coffee.brand.value or "Unknown" }}
+- Coffee Name: {{ coffee.product_name.value or "Unknown" }}
 - Origin / Country: {{ coffee.country.value or "Unknown" }}
-- Region / Estate: {{ coffee.region.value or coffee.estate.value or "Unknown" }}
-- Varietal: {{ coffee.varietal.value or "Arabica" }}
-- Process: {{ coffee.process.value or "washed" }}
-- Roast Level: {{ coffee.roast_level.value or "light" }}
-- Tasting Notes: {{ coffee.tasting_notes.value or "Balanced sweet acidity" }}
-- Stated Altitude: {{ coffee.altitude.value or "High elevation" }}
+- Region: {{ coffee.region.value or "Unknown" }}
+- Estate: {{ coffee.estate.value or "Unknown" }}
+- Varietal: {{ coffee.varietal.value or "Unknown" }}
+- Process: {{ coffee.process.value or "Unknown" }}
+- Roast Level: {{ coffee.roast_level.value or "Unknown" }}
+- Tasting Notes: {{ coffee.tasting_notes.value or "Unknown" }}
+- Altitude: {{ coffee.altitude.value or "Unknown" }}
+"Unknown" means the bag did not state it. Do not guess unknown values: choose safe middle-ground parameters and list each such gap in `explanation.assumptions`.
 
 Brewing Setup:
 - Dripper: {{ dripper or "Hario V60" }}
-- Grinder: {{ grinder or "Specialty hand grinder" }}
+- Grinder: {{ grinder or "Not specified" }}
 - Target Dose: {{ dose_g }}g
 - Preference: {{ target_strength or "balanced" }}
 
@@ -26,3 +28,8 @@ Strict Rules:
 5. Provide clear `explanation` detailing why these parameters fit the bean processing and roast.
 6. Provide 2-3 practical troubleshooting tips for under- or over-extraction symptoms.
 7. Return strictly valid JSON conforming to RecipeGenerationOutput schema.
+- Leave `grind_setting` null. Describe grind size in relative terms (e.g. medium-fine, like table salt); exact grinder settings are added from a verified catalogue.
+- Start `expected_flavour` with "Prediction:" - it is an expectation, not a guarantee.
+- Do not state that a roast level, process, or origin must be brewed one specific way; present parameters as starting points.
+- Include troubleshooting tips for all four: sourness, bitterness, weak flavour, and slow drawdown.
+- Timing must be feasible: the second pour starts after the bloom ends and the last pour starts before `target_brew_time_seconds`.

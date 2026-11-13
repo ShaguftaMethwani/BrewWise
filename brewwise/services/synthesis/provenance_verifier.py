@@ -16,6 +16,9 @@ class ProvenanceVerifier:
             # No retrieved evidence - must be AI generated from principles
             recipe.source_type = "ai_generated" if recipe.source_type != "curated_baseline" else "curated_baseline"
             recipe.source_recipes = []
+            note = "No sufficiently relevant published recipe was found in the searched sources; this is a generated starting point"
+            if note not in recipe.limitations:
+                recipe.limitations.append(note)
             return recipe
 
         # Build set of valid URLs from evidence
@@ -37,7 +40,7 @@ class ProvenanceVerifier:
             for m in evidence.matched_recipes[:2]:
                 verified_sources.append(
                     SourceReference(
-                        source_name=f"{m.author or m.site_name} ({m.title})",
+                        source_name=f"{m.author or m.site_name or 'Retrieved source'} ({m.title})",
                         url=m.url,
                         similarity_score=m.relevance_score
                     )
@@ -46,6 +49,13 @@ class ProvenanceVerifier:
         recipe.source_recipes = verified_sources
 
         # Set correct source_type based on verified outcome
+        if recipe.source_type == "curated_baseline":
+            # Rule-based fallback did not use the sources' parameters: list them as references only
+            recipe.limitations.append(
+                "Retrieved sources are listed for reference; this rule-based recipe was not derived from their parameters"
+            )
+            return recipe
+
         if evidence.match_outcome == "A":
             recipe.source_type = "exact_match"
         elif evidence.match_outcome == "B":
