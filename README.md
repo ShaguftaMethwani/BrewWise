@@ -6,6 +6,54 @@
 
 ---
 
+## 📱 Application Screenshots & User Journey
+
+<div align="center">
+
+### 1. Vision Bag Capture & Extraction
+*Capture or upload any specialty coffee bag photo. Gemini 2.5 Flash extracts metadata using compact, token-compressed schemas.*
+
+![01 · Bag Scan & Vision OCR](docs/screenshots/01-bag-scan.svg)
+
+<br/>
+
+### 2. Extracted Profile Review & Equipment Setup
+*Review extracted fields with confidence badges (`>=90% Bag`, `~85% Inferred`), correct any values, and calibrate your grinder & dripper.*
+
+![02 · Profile Review & Equipment Setup](docs/screenshots/02-profile-review.svg)
+
+<br/>
+
+### 3. Precision Dialed-In Recipe & Pour Schedule
+*Receive an evidence-grounded recipe with 100% verified arithmetic, grinder click calibration, and cumulative scale weight targets.*
+
+![03 · Precision Dialed-In Recipe](docs/screenshots/03-recipe-view.svg)
+
+<br/>
+
+### 4. Interactive Step-by-Step Pour Timer
+*Follow real-time pour stages with cumulative water scale targets, Screen Wake Lock API (keeps mobile display awake), and synthesized audio chimes.*
+
+![04 · Interactive Pour Timer](docs/screenshots/04-brew-timer.svg)
+
+<br/>
+
+### 5. Post-Brew Sensory Evaluation & Barista Diagnosis
+*Rate cup sweetness, acidity, and body. The deterministic diagnosis engine identifies extraction imbalances and recommends targeted 1-variable tweaks.*
+
+![05 · Sensory Feedback & Diagnosis](docs/screenshots/05-sensory-feedback.svg)
+
+<br/>
+
+### 6. Grounded RAG Evidence & Source Provenance
+*Explore retrieved champion recipes with match classifications (Exact, Strong, Related) and verified outbound links with zero fabricated citations.*
+
+![06 · Verified Provenance & Evidence](docs/screenshots/06-evidence-provenance.svg)
+
+</div>
+
+---
+
 ## 🌟 Key Features
 
 ### 📸 Phase 1 — Multi-Modal Vision & Recipe Synthesis

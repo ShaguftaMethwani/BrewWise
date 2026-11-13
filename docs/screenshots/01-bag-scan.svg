@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="100%" height="100%">
+  <defs>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+      .serif { font-family: Georgia, Cambria, "Times New Roman", Times, serif; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1000" height="640" fill="#f5f5f4" rx="16"/>
+
+  <!-- Window Container -->
+  <g transform="translate(40, 30)" filter="url(#shadow)">
+    <!-- Browser Window Chrome -->
+    <rect width="920" height="580" rx="12" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+    <path d="M 0 12 C 0 5.373 5.373 0 12 0 L 908 0 C 914.627 0 920 5.373 920 12 L 920 44 L 0 44 Z" fill="#fafafa" stroke="#e5e5e5" stroke-width="1"/>
+    <!-- Window Controls -->
+    <circle cx="24" cy="22" r="6" fill="#ef4444"/>
+    <circle cx="44" cy="22" r="6" fill="#f59e0b"/>
+    <circle cx="64" cy="22" r="6" fill="#10b981"/>
+    <!-- URL Bar -->
+    <rect x="220" y="10" width="480" height="24" rx="6" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+    <text x="460" y="26" text-anchor="middle" class="sans" font-size="11" fill="#78716c">https://brewwise.app/scan</text>
+
+    <!-- App Navigation -->
+    <line x1="0" y1="44" x2="920" y2="44" stroke="#f0f0f0" stroke-width="1"/>
+    <g transform="translate(36, 60)">
+      <text x="0" y="20" class="serif" font-size="20" font-weight="700" fill="#1c1917">BrewWise ☕</text>
+      <text x="700" y="18" class="sans" font-size="13" font-weight="600" fill="#292524">Scan Bag</text>
+      <rect x="696" y="24" width="60" height="2" fill="#d97706" rx="1"/>
+      <text x="780" y="18" class="sans" font-size="13" fill="#78716c">History</text>
+      <text x="840" y="18" class="sans" font-size="13" fill="#78716c">Settings</text>
+    </g>
+
+    <!-- Main Content Area -->
+    <g transform="translate(0, 110)">
+      <!-- Hero Header -->
+      <g transform="translate(460, 20)" text-anchor="middle">
+        <rect x="-105" y="0" width="210" height="26" rx="13" fill="#e8ede6" stroke="#c8d6c4" stroke-width="1"/>
+        <text x="0" y="17" class="sans" font-size="12" font-weight="600" fill="#3c5438">✨ Intelligent Pour-Over Precision</text>
+        <text x="0" y="62" class="sans" font-size="28" font-weight="700" fill="#1c1917" letter-spacing="-0.5">Dial in every bean.</text>
+        <text x="0" y="90" class="sans" font-size="18" font-weight="400" fill="#78716c">From bag photo to balanced cup.</text>
+      </g>
+
+      <!-- Upload Dropzone Card -->
+      <g transform="translate(200, 140)">
+        <rect width="520" height="230" rx="12" fill="#fafafa" stroke="#d4d4d8" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <rect x="232" y="32" width="56" height="56" rx="14" fill="#e8ede6" stroke="#c8d6c4" stroke-width="1"/>
+        <!-- Cloud Upload Icon -->
+        <path d="M 252 64 L 268 64 M 260 52 L 260 64 M 255 57 L 260 52 L 265 57" stroke="#3c5438" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M 248 64 C 243 64 241 59 245 54 C 246 47 257 44 260 48 C 263 45 272 45 273 52 C 277 53 278 61 273 64" stroke="#3c5438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+        <text x="260" y="116" text-anchor="middle" class="sans" font-size="15" font-weight="600" fill="#1c1917">Upload or Drop Coffee Bag Photo</text>
+        <text x="260" y="138" text-anchor="middle" class="sans" font-size="12" fill="#78716c">Take a clear photo showing roaster, origin, process, or tasting notes.</text>
+
+        <!-- CTA Buttons -->
+        <g transform="translate(130, 164)">
+          <rect width="120" height="38" rx="8" fill="#3c5438"/>
+          <text x="60" y="24" text-anchor="middle" class="sans" font-size="13" font-weight="600" fill="#ffffff">📷 Camera Scan</text>
+        </g>
+        <g transform="translate(262, 164)">
+          <rect width="130" height="38" rx="8" fill="#f4ede4" stroke="#e2d3c1" stroke-width="1"/>
+          <text x="65" y="24" text-anchor="middle" class="sans" font-size="13" font-weight="600" fill="#6b533e">📁 Choose Photo</text>
+        </g>
+      </g>
+
+      <!-- Value Pillars -->
+      <g transform="translate(80, 395)">
+        <g transform="translate(0, 0)">
+          <rect width="230" height="60" rx="8" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+          <text x="16" y="26" class="sans" font-size="13" font-weight="700" fill="#1f2937">👁️ Vision Bag OCR</text>
+          <text x="16" y="44" class="sans" font-size="11" fill="#6b7280">Compact Gemini Flash extraction</text>
+        </g>
+        <g transform="translate(260, 0)">
+          <rect width="230" height="60" rx="8" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+          <text x="16" y="26" class="sans" font-size="13" font-weight="700" fill="#1f2937">⚖️ Strict Verification</text>
+          <text x="16" y="44" class="sans" font-size="11" fill="#6b7280">100% verified pour arithmetic</text>
+        </g>
+        <g transform="translate(520, 0)">
+          <rect width="240" height="60" rx="8" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+          <text x="16" y="26" class="sans" font-size="13" font-weight="700" fill="#1f2937">⚙️ Gear Calibrated</text>
+          <text x="16" y="44" class="sans" font-size="11" fill="#6b7280">25 grinders &amp; 10 dripper geometries</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

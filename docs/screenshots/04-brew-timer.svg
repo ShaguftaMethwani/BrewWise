@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="100%" height="100%">
+  <defs>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+      .serif { font-family: Georgia, Cambria, "Times New Roman", Times, serif; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="640" fill="#f5f5f4" rx="16"/>
+
+  <g transform="translate(40, 30)" filter="url(#shadow)">
+    <!-- Browser Window Chrome -->
+    <rect width="920" height="580" rx="12" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+    <path d="M 0 12 C 0 5.373 5.373 0 12 0 L 908 0 C 914.627 0 920 5.373 920 12 L 920 44 L 0 44 Z" fill="#fafafa" stroke="#e5e5e5" stroke-width="1"/>
+    <circle cx="24" cy="22" r="6" fill="#ef4444"/>
+    <circle cx="44" cy="22" r="6" fill="#f59e0b"/>
+    <circle cx="64" cy="22" r="6" fill="#10b981"/>
+    <rect x="220" y="10" width="480" height="24" rx="6" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+    <text x="460" y="26" text-anchor="middle" class="sans" font-size="11" fill="#78716c">https://brewwise.app/timer/active</text>
+
+    <!-- Timer Header Status Bar -->
+    <g transform="translate(48, 64)">
+      <text x="0" y="18" class="serif" font-size="20" font-weight="700" fill="#1c1917">Interactive Pour Assistant</text>
+      <!-- Badges -->
+      <g transform="translate(620, 2)">
+        <rect x="0" y="0" width="94" height="22" rx="11" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+        <text x="47" y="15" text-anchor="middle" class="sans" font-size="10" font-weight="600" fill="#059669">📱 Wake Lock ON</text>
+        <rect x="104" y="0" width="86" height="22" rx="11" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+        <text x="147" y="15" text-anchor="middle" class="sans" font-size="10" font-weight="600" fill="#2563eb">🔊 Chimes ON</text>
+      </g>
+    </g>
+
+    <!-- Main Active Timer Stage Card -->
+    <g transform="translate(48, 108)">
+      <rect width="824" height="280" rx="12" fill="#fafaf9" stroke="#e7e5e4" stroke-width="1"/>
+
+      <!-- Progress Fill Bar -->
+      <rect x="0" y="0" width="480" height="4" fill="#d97706" rx="2"/>
+
+      <!-- Center Countdown Display -->
+      <g transform="translate(412, 50)" text-anchor="middle">
+        <text x="0" y="20" class="sans" font-size="11" font-weight="700" fill="#d97706" letter-spacing="1">POUR STAGE 2 OF 3 · MAIN SPIRAL</text>
+        <text x="0" y="90" class="mono" font-size="64" font-weight="800" fill="#1c1917">01:12</text>
+        <text x="0" y="116" class="sans" font-size="13" fill="#78716c">Total Target: 03:00</text>
+      </g>
+
+      <!-- Target Scale Metrics in Timer Card -->
+      <g transform="translate(180, 190)">
+        <g transform="translate(0, 0)">
+          <rect width="210" height="68" rx="8" fill="#ffffff" stroke="#e7e5e4" stroke-width="1"/>
+          <text x="105" y="24" text-anchor="middle" class="sans" font-size="10" font-weight="700" fill="#78716c">CURRENT POUR TARGET</text>
+          <text x="105" y="52" text-anchor="middle" class="mono" font-size="22" font-weight="700" fill="#b45309">+95g</text>
+        </g>
+        <g transform="translate(254, 0)">
+          <rect width="210" height="68" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="1.5"/>
+          <text x="105" y="24" text-anchor="middle" class="sans" font-size="10" font-weight="700" fill="#047857">SCALE WEIGHT TARGET</text>
+          <text x="105" y="52" text-anchor="middle" class="mono" font-size="24" font-weight="800" fill="#059669">140g</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Timer Controls -->
+    <g transform="translate(320, 404)">
+      <rect x="0" y="0" width="130" height="40" rx="8" fill="#3c5438"/>
+      <text x="65" y="25" text-anchor="middle" class="sans" font-size="13" font-weight="700" fill="#ffffff">⏸️ Pause</text>
+
+      <rect x="150" y="0" width="130" height="40" rx="8" fill="#ffffff" stroke="#d6d3d1" stroke-width="1"/>
+      <text x="215" y="25" text-anchor="middle" class="sans" font-size="13" font-weight="600" fill="#44403c">🔄 Reset</text>
+    </g>
+
+    <!-- Upcoming Stage Preview -->
+    <g transform="translate(48, 464)">
+      <rect width="824" height="88" rx="8" fill="#ffffff" stroke="#e7e5e4" stroke-width="1"/>
+      <text x="18" y="24" class="sans" font-size="11" font-weight="700" fill="#78716c">UPCOMING STAGES</text>
+
+      <g transform="translate(18, 40)">
+        <g transform="translate(0, 0)">
+          <rect width="380" height="34" rx="6" fill="#f5f5f4"/>
+          <text x="12" y="22" class="sans" font-size="11" font-weight="600" fill="#78716c">✓ Stage 1: Bloom 45g (0:00 - 0:45) — Completed</text>
+        </g>
+        <g transform="translate(400, 0)">
+          <rect width="388" height="34" rx="6" fill="#fffbeb" stroke="#fef3c7" stroke-width="1"/>
+          <text x="12" y="22" class="sans" font-size="11" font-weight="600" fill="#92400e">⏳ Stage 3: Pulse Pour to 240g (starts at 1:30)</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
